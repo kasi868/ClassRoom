@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,12 +10,15 @@ import {
   Image,
   Platform,
   TextInput,
-  Alert,
   Pressable,
   LayoutAnimation,
   UIManager,
+  ActivityIndicator,
+  Modal,
+  Animated,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import { BlurView } from "expo-blur";
 import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -28,6 +31,8 @@ import {
 
 import { ACADEMIC_RECORDS } from "./AcademicMarksScreen";
 import { subjectCards } from "./SubjectsMaterialsScreen";
+
+const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -299,10 +304,50 @@ const ProfileScreen = () => {
 
   // State management for edit mode and user fields
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
+
   const [profileImage, setProfileImage] = useState("https://randomuser.me/api/portraits/men/46.jpg");
   const [email, setEmail] = useState("emily.johnson@school.edu");
   const [phone, setPhone] = useState("+91 9898767654");
   const [expandedGuardianId, setExpandedGuardianId] = useState(null);
+
+  // Animation Values
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+  const toastTranslateY = useRef(new Animated.Value(-20)).current;
+  const modalFade = useRef(new Animated.Value(0)).current;
+  const modalScale = useRef(new Animated.Value(0.9)).current;
+
+  const showToast = useCallback(() => {
+    setShowSuccessToast(true);
+    Animated.parallel([
+      Animated.timing(toastOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+      Animated.spring(toastTranslateY, { toValue: 0, friction: 8, useNativeDriver: true }),
+    ]).start();
+
+    setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(toastOpacity, { toValue: 0, duration: 400, useNativeDriver: true }),
+        Animated.timing(toastTranslateY, { toValue: -20, duration: 400, useNativeDriver: true }),
+      ]).start(() => setShowSuccessToast(false));
+    }, 3000);
+  }, [toastOpacity, toastTranslateY]);
+
+  const toggleLogoutModal = (visible) => {
+    if (visible) {
+      setIsLogoutModalVisible(true);
+      Animated.parallel([
+        Animated.timing(modalFade, { toValue: 1, duration: 300, useNativeDriver: true }),
+        Animated.spring(modalScale, { toValue: 1, friction: 8, useNativeDriver: true }),
+      ]).start();
+    } else {
+      Animated.timing(modalFade, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
+        setIsLogoutModalVisible(false);
+        modalScale.setValue(0.9);
+      });
+    }
+  };
 
   const toggleGuardian = (id) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -312,7 +357,7 @@ const ProfileScreen = () => {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'Sorry, we need camera roll permissions to make this work!');
+      // Fallback for permissions
       return;
     }
 
@@ -329,29 +374,18 @@ const ProfileScreen = () => {
   };
 
   const handleSave = () => {
-    // This is where you would typically call an API to update the profile
-    setIsEditing(false);
-    Alert.alert("Success", "Your profile has been updated successfully.");
+    setIsSaving(true);
+    // Simulate professional API delay
+    setTimeout(() => {
+      setIsSaving(false);
+      setIsEditing(false);
+      showToast();
+    }, 1500);
   };
 
   const handleCancel = () => {
-    // Optionally reset fields to their original state here
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setIsEditing(false);
-  };
-
-  const handleLogout = () => {
-    Alert.alert(
-      "Logout",
-      "Are you sure you want to log out of your account?",
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Logout", 
-          style: "destructive",
-          onPress: () => navigation.reset({ index: 0, routes: [{ name: "Login" }] }) 
-        }
-      ]
-    );
   };
 
   return (
@@ -383,15 +417,20 @@ const ProfileScreen = () => {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Profile</Text>
           <TouchableOpacity 
-            onPress={isEditing ? handleSave : () => setIsEditing(true)}
+            onPress={isEditing ? (isSaving ? null : handleSave) : () => setIsEditing(true)}
             style={styles.editHeaderButton}
             activeOpacity={0.7}
+            disabled={isSaving}
           >
-            <Ionicons 
-              name={isEditing ? "checkmark-done-outline" : "create-outline"} 
-              size={24} 
-              color={isEditing ? "#16A34A" : "#2563EB"} 
-            />
+            {isSaving ? (
+              <ActivityIndicator size="small" color="#2563EB" />
+            ) : (
+              <Ionicons 
+                name={isEditing ? "checkmark-done-outline" : "create-outline"} 
+                size={24} 
+                color={isEditing ? "#16A34A" : "#2563EB"} 
+              />
+            )}
           </TouchableOpacity>
         </View>
 
@@ -533,7 +572,7 @@ const ProfileScreen = () => {
         <TouchableOpacity
           activeOpacity={0.8}
           style={styles.logoutButton}
-          onPress={handleLogout}
+          onPress={() => toggleLogoutModal(true)}
         >
           <MaterialCommunityIcons
             name="logout"
@@ -550,6 +589,59 @@ const ProfileScreen = () => {
           Sign out from your account
         </Text>
       </ScrollView>
+
+      {/* Premium Success Toast */}
+      {showSuccessToast && (
+        <Animated.View style={[styles.toastContainer, { opacity: toastOpacity, transform: [{ translateY: toastTranslateY }] }]}>
+          <View style={styles.toastContent}>
+            <Ionicons name="checkmark-circle" size={20} color="#fff" />
+            <Text style={styles.toastText}>Profile updated successfully</Text>
+          </View>
+        </Animated.View>
+      )}
+
+      {/* Custom Premium Logout Modal */}
+      <Modal transparent visible={isLogoutModalVisible} animationType="none">
+        <View style={styles.modalOverlay}>
+          <AnimatedBlurView 
+            tint="dark" 
+            intensity={30} 
+            style={[StyleSheet.absoluteFill, { opacity: modalFade }]} 
+          />
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => toggleLogoutModal(false)} />
+          <Animated.View 
+            style={[
+              styles.modalContent, 
+              { opacity: modalFade, transform: [{ scale: modalScale }] }
+            ]}
+          >
+            <View style={styles.modalIconContainer}>
+              <Ionicons name="log-out" size={32} color="#EF4444" />
+            </View>
+            <Text style={styles.modalTitle}>Confirm Logout</Text>
+            <Text style={styles.modalDescription}>
+              Are you sure you want to sign out? You will need to log in again to access your classes.
+            </Text>
+            <View style={styles.modalButtonRow}>
+              <TouchableOpacity 
+                style={[styles.modalBtn, styles.modalBtnCancel]} 
+                onPress={() => toggleLogoutModal(false)}
+              >
+                <Text style={styles.modalBtnCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalBtn, styles.modalBtnConfirm]} 
+                onPress={() => {
+                  toggleLogoutModal(false);
+                  navigation.reset({ index: 0, routes: [{ name: "Login" }] });
+                }}
+              >
+                <Text style={styles.modalBtnConfirmText}>Logout</Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -828,4 +920,88 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#9CA3AF",
   },
+
+  // Toast Styles
+  toastContainer: {
+    position: "absolute",
+    top: 60,
+    left: 20,
+    right: 20,
+    alignItems: "center",
+    zIndex: 999,
+  },
+  toastContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#16A34A",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 30,
+    gap: 10,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+  },
+  toastText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 14,
+  },
+
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  modalContent: {
+    width: "100%",
+    maxWidth: 340,
+    backgroundColor: "#fff",
+    borderRadius: 30,
+    padding: 24,
+    alignItems: "center",
+    elevation: 20,
+  },
+  modalIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#FEF2F2",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#111827",
+    marginBottom: 10,
+  },
+  modalDescription: {
+    fontSize: 14,
+    color: "#6B7280",
+    textAlign: "center",
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  modalButtonRow: {
+    flexDirection: "row",
+    gap: 12,
+    width: "100%",
+  },
+  modalBtn: {
+    flex: 1,
+    height: 50,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalBtnCancel: { backgroundColor: "#F3F4F6" },
+  modalBtnConfirm: { backgroundColor: "#EF4444" },
+  modalBtnCancelText: { fontWeight: "700", color: "#4B5563" },
+  modalBtnConfirmText: { fontWeight: "700", color: "#fff" },
 });
