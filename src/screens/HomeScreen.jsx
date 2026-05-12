@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   FlatList,
@@ -13,11 +13,13 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
 
 import CategoryCard from "../components/CategoryCard";
 import DashboardCard from "../components/DashboardCard";
 import NoticeCard from "../components/NoticeCard";
 import ProfileCard from "../components/ProfileCard";
+import MenuBarScreen from "../components/MenuBarScreen";
 import IMAGES from "../constants/images";
 
 const theme = {
@@ -49,12 +51,24 @@ const student = {
   image: null,
 };
 
-const attendance = {
-  percentage: 92,
-  period: "This Month",
-};
+const ACADEMIC_RECORDS = [
+  { id: 1, subject: "English", marks: 98, total: 100, grade: "A+", remarks: "Outstanding" },
+  { id: 2, subject: "Mathematics", marks: 99, total: 100, grade: "A+", remarks: "Outstanding" },
+  { id: 3, subject: "Hindi", marks: 95, total: 100, grade: "A+", remarks: "Outstanding" },
+  { id: 4, subject: "Telugu", marks: 98, total: 100, grade: "A+", remarks: "Outstanding" },
+  { id: 5, subject: "Science", marks: 97, total: 100, grade: "A+", remarks: "Outstanding" },
+  { id: 6, subject: "Social", marks: 96, total: 100, grade: "A+", remarks: "Outstanding" },
+];
 
-const dashboardStats = [
+const FEE_RECORDS = [
+  { id: "1", title: "Admission Fee", amount: 10000, date: "01 Jun 2025", status: "Paid" },
+  { id: "2", title: "1st Term Fee", amount: 15000, date: "01 Aug 2025", status: "Paid" },
+  { id: "3", title: "2nd Term Fee", amount: 15000, date: "01 Nov 2025", status: "Paid" },
+  { id: "4", title: "3rd Term Fee", amount: 15000, date: "01 Feb 2026", status: "Pending" },
+  { id: "5", title: "4th Term Fee", amount: 20000, date: "-", status: "Pending" },
+];
+
+const INITIAL_DASHBOARD_STATS = [
   {
     id: "attendance",
     title: "Attendance",
@@ -64,6 +78,7 @@ const dashboardStats = [
     iconColor: "#16A34A",
     iconBackground: "#D8F3D8",
     backgroundColor: theme.colors.green,
+    onPressScreen: "Attendance", // Add target screen for navigation
     trend: "up",
   },
   {
@@ -76,6 +91,7 @@ const dashboardStats = [
     iconBackground: "#FFE3C2",
     backgroundColor: theme.colors.orange,
     valueColor: "#C2410C",
+    onPressScreen: "Marks",
   },
   {
     id: "fee-due",
@@ -87,6 +103,7 @@ const dashboardStats = [
     iconBackground: "#DCEAFE",
     backgroundColor: theme.colors.blue,
     valueColor: "#1D4ED8",
+    onPressScreen: "FeeDetails",
   },
   {
     id: "new-notices",
@@ -98,18 +115,19 @@ const dashboardStats = [
     iconBackground: "#FFE0E9",
     backgroundColor: theme.colors.pink,
     valueColor: "#DC2626",
+    onPressScreen: "Notices",
   },
 ];
 
 const categoryItems = [
-  { id: "time-table", title: "Time table", icon: IMAGES.Time_Table, backgroundColor: "#FEF2F2" },
-  { id: "attendance", title: "Attendance", icon: IMAGES.Attendance, backgroundColor: "#ECFDF5" },
-  { id: "exam-schedule", title: "Exam schedule", icon: IMAGES.Calender, backgroundColor: "#EFF6FF" },
-  { id: "fee-details", title: "Fee Details", icon: IMAGES.Fee_Details, backgroundColor: "#FFF7ED" },
-  { id: "transport", title: "Transport", icon: IMAGES.Transport, backgroundColor: "#FEFCE8" },
-  { id: "notices", title: "Notices", icon: IMAGES.Notices, backgroundColor: "#FDF2F8" },
-  { id: "calendar", title: "Calendar", icon: IMAGES.Calender, backgroundColor: "#F0F9FF" },
-  { id: "subjects", title: "Subjects", icon: IMAGES.Subjects, backgroundColor: "#F5F3FF" },
+  { id: "time-table", title: "Time table", icon: IMAGES.Time_Table, backgroundColor: "#FEF2F2", onPressScreen: "TimeTable" }, // Added for consistency
+  { id: "attendance", title: "Attendance", icon: IMAGES.Attendance, backgroundColor: "#ECFDF5", onPressScreen: "Attendance" },
+  { id: "exam-schedule", title: "Exam schedule", icon: IMAGES.Calender, backgroundColor: "#EFF6FF", onPressScreen: "ExamSchedule" },
+  { id: "fee-details", title: "Fee Details", icon: IMAGES.Fee_Details, backgroundColor: "#FFF7ED", onPressScreen: "FeeDetails" },
+  { id: "transport", title: "Transport", icon: IMAGES.Transport, backgroundColor: "#FEFCE8", onPressScreen: "Transport" },
+  { id: "notices", title: "Notices", icon: IMAGES.Notices, backgroundColor: "#FDF2F8", onPressScreen: "Notices" },
+  { id: "calendar", title: "Calendar", icon: IMAGES.Calender, backgroundColor: "#F0F9FF", onPressScreen: "Calendar" },
+  { id: "subjects", title: "Subjects", icon: IMAGES.Subjects, backgroundColor: "#F5F3FF", onPressScreen: "Subjects" },
 ];
 
 const recentNotices = [
@@ -151,10 +169,11 @@ const recentNotices = [
   },
 ];
 
-function Header({ topInset }) {
+function Header({ topInset, onMenuPress, onNotificationPress, onProfilePress }) {
   return (
     <View style={[styles.header, { paddingTop: Math.max(topInset, 10) + 8 }]}>
       <Pressable
+        onPress={onMenuPress}
         style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
         android_ripple={{ color: "rgba(37,99,235,0.08)", borderless: true }}
         accessibilityRole="button"
@@ -171,6 +190,7 @@ function Header({ topInset }) {
       </View>
 
       <Pressable
+        onPress={onNotificationPress}
         style={({ pressed }) => [styles.notificationButton, pressed && styles.pressed]}
         android_ripple={{ color: "rgba(37,99,235,0.08)", borderless: true }}
         accessibilityRole="button"
@@ -180,9 +200,15 @@ function Header({ topInset }) {
         <View style={styles.badge} />
       </Pressable>
 
-      <View style={styles.headerAvatar} accessible accessibilityLabel="Student avatar">
+      <Pressable 
+        onPress={onProfilePress}
+        style={({ pressed }) => [styles.headerAvatar, pressed && styles.pressed]}
+        android_ripple={{ color: "rgba(37,99,235,0.08)", borderless: true }}
+        accessible 
+        accessibilityLabel="View profile"
+      >
         <Text style={styles.headerAvatarText}>AS</Text>
-      </View>
+      </Pressable>
     </View>
   );
 }
@@ -208,8 +234,128 @@ function SectionHeader({ title, actionLabel, onActionPress }) {
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
+  const navigation = useNavigation();
+  const { width, height } = useWindowDimensions();
   const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  // Drawer Logic
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuAnim = useRef(new Animated.Value(0)).current; // 0 = closed, 1 = open
+  const drawerWidth = width * 0.62; // Reduced width for a cleaner look
+
+  // Dynamic Attendance Calculation Logic (Synchronized with AttendanceScreen)
+  const attendanceStats = useMemo(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const normalizedToday = new Date(year, month, today.getDate());
+
+    let present = 0;
+    let absent = 0;
+
+    // Calculate stats based on actual days passed in the current month
+    for (let i = 1; i <= daysInMonth; i++) {
+      const dateObj = new Date(year, month, i);
+      if (dateObj > normalizedToday) break; // Ignore future dates
+
+      if (dateObj.getDay() === 0) {
+        // Sunday is counted as a Holiday in AttendanceScreen logic
+        continue;
+      } else if (i % 12 === 0) {
+        absent++;
+      } else {
+        present++;
+      }
+    }
+
+    const totalWorkingDays = present + absent;
+    const percentage = totalWorkingDays > 0 ? Math.round((present / totalWorkingDays) * 100) : 0;
+
+    return {
+      percentage,
+      displayValue: `${present}/${totalWorkingDays}`,
+      period: "This Month",
+    };
+  }, []);
+
+  // Dynamic Marks Average Calculation Logic
+  const academicStats = useMemo(() => {
+    const totalObtained = ACADEMIC_RECORDS.reduce((acc, curr) => acc + curr.marks, 0);
+    const totalPossible = ACADEMIC_RECORDS.reduce((acc, curr) => acc + (curr.total || 100), 0);
+    const numericPercentage = (totalObtained / totalPossible) * 100;
+    
+    return {
+      value: `${numericPercentage.toFixed(1)}%`,
+      isTopPerformer: numericPercentage > 95,
+    };
+  }, []);
+
+  // Dynamic Fee Due Calculation Logic
+  const feeStats = useMemo(() => {
+    const totalPending = FEE_RECORDS.reduce(
+      (acc, item) => (item.status !== "Paid" ? acc + item.amount : acc),
+      0
+    );
+    const nextDueItem = FEE_RECORDS.find((item) => item.status !== "Paid" && item.date !== "-");
+
+    return {
+      value: totalPending.toLocaleString("en-IN"),
+      subtitle: nextDueItem ? `Due on ${nextDueItem.date.split(" ").slice(0, 2).join(" ")}` : "No upcoming dues",
+    };
+  }, []);
+
+  // Memoized dashboard stats that merges dynamic academic data
+  const dashboardStats = useMemo(() => {
+    return INITIAL_DASHBOARD_STATS.map((stat) => {
+      if (stat.id === "attendance") {
+        return {
+          ...stat,
+          value: attendanceStats.displayValue,
+          subtitle: `${attendanceStats.percentage}% attendance`,
+        };
+      }
+      if (stat.id === "marks-average") {
+        return {
+          ...stat,
+          value: academicStats.value,
+          icon: academicStats.isTopPerformer ? "trophy-outline" : stat.icon,
+          subtitle: academicStats.isTopPerformer ? "Top Performer" : "Average",
+        };
+      }
+      if (stat.id === "fee-due") {
+        return {
+          ...stat,
+          value: feeStats.value,
+          subtitle: feeStats.subtitle,
+        };
+      }
+      return stat;
+    });
+  }, [academicStats, attendanceStats, feeStats]);
+
+  const toggleMenu = useCallback((open) => {
+    if (open) setIsMenuOpen(true);
+    
+    Animated.spring(menuAnim, {
+      toValue: open ? 1 : 0,
+      friction: 8,
+      tension: 40,
+      useNativeDriver: true,
+    }).start(() => {
+      if (!open) setIsMenuOpen(false);
+    });
+  }, [menuAnim]);
+
+  const menuTranslateX = menuAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-drawerWidth, 0],
+  });
+
+  const backdropOpacity = menuAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  });
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -220,14 +366,21 @@ export default function HomeScreen() {
   }, [fadeAnim]);
 
   const categoryCardWidth = useMemo(() => {
-    const horizontalPadding = theme.spacing.page * 2;
+    const horizontalPadding = theme.spacing.page * 2; // Left and right padding
     const columnGap = 10 * 3;
     return Math.floor((width - horizontalPadding - columnGap) / 4);
   }, [width]);
 
   const renderDashboardCard = useCallback(
-    (item) => <DashboardCard key={item.id} item={item} />,
-    []
+    (item) => (
+      <DashboardCard
+        key={item.id}
+        item={item}
+        // Dynamically navigate if onPressScreen is defined
+        onPress={item.onPressScreen ? () => navigation.navigate(item.onPressScreen) : undefined}
+      />
+    ),
+    [navigation] // Add navigation to dependencies
   );
 
   const renderCategory = useCallback(
@@ -239,10 +392,15 @@ export default function HomeScreen() {
           (index + 1) % 4 === 0 && styles.categoryItemLast,
         ]}
       >
-        <CategoryCard item={item} width={categoryCardWidth} />
+        <CategoryCard
+          item={item}
+          width={categoryCardWidth}
+          // Dynamically navigate if onPressScreen is defined
+          onPress={item.onPressScreen ? () => navigation.navigate(item.onPressScreen) : undefined}
+        />
       </View>
     ),
-    [categoryCardWidth]
+    [categoryCardWidth, navigation] // Add navigation to dependencies
   );
 
   const renderNotice = useCallback((item) => <NoticeCard key={item.id} item={item} />, []);
@@ -250,7 +408,7 @@ export default function HomeScreen() {
   const ListHeader = useMemo(
     () => (
       <Animated.View style={[styles.body, { opacity: fadeAnim }]}>
-        <ProfileCard student={student} attendance={attendance} />
+        <ProfileCard student={student} attendance={attendanceStats} />
 
         <View style={styles.statsGrid}>
           <View style={styles.statsRow}>{dashboardStats.slice(0, 2).map(renderDashboardCard)}</View>
@@ -260,17 +418,21 @@ export default function HomeScreen() {
         <SectionHeader title="Categories" />
       </Animated.View>
     ),
-    [fadeAnim, renderDashboardCard]
+    [fadeAnim, renderDashboardCard, dashboardStats]
   );
 
   const ListFooter = useMemo(
     () => (
       <Animated.View style={[styles.body, styles.footerBody, { opacity: fadeAnim }]}>
-        <SectionHeader title="Recent Notices" actionLabel="View All" />
+        <SectionHeader 
+          title="Recent Notices" 
+          actionLabel="View All" 
+          onActionPress={() => navigation.navigate("Notices")} 
+        />
         <View style={styles.noticeList}>{recentNotices.map(renderNotice)}</View>
       </Animated.View>
     ),
-    [fadeAnim, renderNotice]
+    [fadeAnim, renderNotice, navigation]
   );
 
   return (
@@ -282,7 +444,12 @@ export default function HomeScreen() {
         style={StyleSheet.absoluteFill}
       />
 
-      <Header topInset={insets.top} />
+      <Header
+        topInset={insets.top}
+        onMenuPress={() => toggleMenu(true)}
+        onNotificationPress={() => navigation.navigate("Notices")}
+        onProfilePress={() => navigation.navigate("Profile")}
+      />
 
       <FlatList
         data={categoryItems}
@@ -299,6 +466,37 @@ export default function HomeScreen() {
           },
         ]}
       />
+
+      {/* CUSTOM SIDE DRAWER SYSTEM */}
+      {isMenuOpen && (
+        <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+          {/* Overlay Backdrop */}
+          <Animated.View 
+            style={[
+              styles.backdrop, 
+              { opacity: backdropOpacity }
+            ]}
+          >
+            <Pressable 
+              style={styles.flex} 
+              onPress={() => toggleMenu(false)} 
+            />
+          </Animated.View>
+
+          {/* Sliding Menu Container */}
+          <Animated.View
+            style={[
+              styles.drawerContainer,
+              {
+                width: drawerWidth,
+                transform: [{ translateX: menuTranslateX }],
+              },
+            ]}
+          >
+            <MenuBarScreen navigation={navigation} user={student} />
+          </Animated.View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -423,7 +621,7 @@ const styles = StyleSheet.create({
   },
   categoryItem: {
     marginRight: 10,
-    marginBottom: 10,
+    marginBottom: 14,
   },
   categoryItemFirst: {
     marginLeft: theme.spacing.page,
@@ -433,5 +631,29 @@ const styles = StyleSheet.create({
   },
   noticeList: {
     paddingBottom: 4,
+  },
+  flex: {
+    flex: 1,
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    zIndex: 10,
+  },
+  drawerContainer: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: "#FFFFFF",
+    zIndex: 11,
+    borderTopRightRadius: 32,
+    borderBottomRightRadius: 32,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 4, height: 0 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 16,
   },
 });

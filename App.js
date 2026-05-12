@@ -3,13 +3,31 @@ import { Animated, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import * as Font from 'expo-font';
+import { 
+  Ionicons, 
+  MaterialIcons, 
+  MaterialCommunityIcons, 
+  Feather, 
+  FontAwesome5 
+} from '@expo/vector-icons';
 
 import LoginScreen from './src/screens/LoginScreen';
 import SplashScreen from './src/screens/SplashScreen';
+import AttendanceScreen from './src/components/AttendanceScreen';
+import TimeTableScreen from './src/components/TimeTableScreen';
+import FeeDetailsScreen from './src/components/FeeDetailsScreen';
+import TransportScreen from './src/components/TransportScreen';
+import ExamScheduleScreen from './src/components/ExamScheduleScreen';
+import NoticesScreen from './src/components/NoticesScreen';
+import CalendarScreen from './src/components/CalendarScreen';
+import SubjectsMaterialsScreen from './src/components/SubjectsMaterialsScreen';
+import AssignmentsScreen from './src/components/AssignmentsScreen';
+import LiveClassesScreen from './src/components/LiveClassesScreen';
+import AcademicMarksScreen from './src/components/AcademicMarksScreen';
+import ProfileScreen from './src/components/ProfileScreen';
 import HomeScreen from './src/screens/HomeScreen';
-import ForgotPasswordScreen from './src/components/ForgotPasswordScreen'; // Import new screen
-import OtpVerificationScreen from './src/components/OTPVerificationScreen'; // Import new screen
-import ResetPasswordScreen from './src/components/ResetPasswordScreen'; // Import new screen
+
 
 
 const Stack = createStackNavigator();
@@ -24,22 +42,35 @@ export default function App() {
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    // Automated Navigation Logic
-    // In a real production app, this is where you would check for user tokens,
-    // load application assets, or sync initial data.
-    const splashTimer = setTimeout(() => {
-      // Execute a dynamic fade-out transition for a professional feel
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 800, // 800ms for a smooth cross-fade effect
-        useNativeDriver: true,
-      }).start(() => {
-        // Unmount the splash screen and reveal the LoginScreen
-        setIsAppReady(true);
-      });
-    }, 3000); // Display the branding for 3 seconds
+    async function prepare() {
+      try {
+        // Preload all icon fonts used across the application
+        // This prevents the "flicker" where icons appear as boxes or empty spaces
+        const fontLoading = Font.loadAsync({
+          ...Ionicons.font,
+          ...MaterialIcons.font,
+          ...MaterialCommunityIcons.font,
+          ...Feather.font,
+          ...FontAwesome5.font,
+        });
 
-    return () => clearTimeout(splashTimer);
+        // Maintain the splash screen for at least 2.5 seconds for branding
+        const timer = new Promise(resolve => setTimeout(resolve, 2500));
+
+        await Promise.all([fontLoading, timer]);
+      } catch (e) {
+        console.warn("Asset loading error:", e);
+      } finally {
+        // Execute the cross-fade transition
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 800,
+          useNativeDriver: true,
+        }).start(() => setIsAppReady(true));
+      }
+    }
+
+    prepare();
   }, [fadeAnim]);
 
   return (
@@ -51,11 +82,20 @@ export default function App() {
       {isAppReady ? (
         <NavigationContainer>
           <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="Login" component={LoginScreen} />
-            <Stack.Screen name="Home" component={HomeScreen} />
-            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-            <Stack.Screen name="OtpVerification" component={OtpVerificationScreen} />
-            <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+            <Stack.Screen name="Login" component={LoginScreen}/>
+            <Stack.Screen name="Attendance" component={AttendanceScreen}/>
+            <Stack.Screen name="TimeTable" component={TimeTableScreen}/>
+            <Stack.Screen name="FeeDetails" component={FeeDetailsScreen}/>
+            <Stack.Screen name="Transport" component={TransportScreen}/>
+            <Stack.Screen name="ExamSchedule" component={ExamScheduleScreen}/>
+            <Stack.Screen name="Notices" component={NoticesScreen}/>
+            <Stack.Screen name="Calendar" component={CalendarScreen}/>
+            <Stack.Screen name="Subjects" component={SubjectsMaterialsScreen}/>
+            <Stack.Screen name="Assignments" component={AssignmentsScreen}/>
+            <Stack.Screen name="Marks" component={AcademicMarksScreen}/>
+            <Stack.Screen name="LiveClasses" component={LiveClassesScreen}/>
+            <Stack.Screen name="Home" component={HomeScreen}/>
+            <Stack.Screen name="Profile" component={ProfileScreen}/>
           </Stack.Navigator>
         </NavigationContainer>
       ) : (

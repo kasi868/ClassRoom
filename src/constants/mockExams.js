@@ -1,0 +1,77 @@
+export const EXAMS_DATA = [
+  {
+    id: "1",
+    subject: "Mathematics",
+    examType: "Term Exam",
+    date: "2024-12-15", // ISO format for easy sorting
+    time: "09:00 AM - 12:00 PM",
+    location: "Room 301, Building A",
+    color: "#EAF1FF",
+    iconColor: "#2563EB",
+    icon: "calculator",
+    syllabus: "Calculus, Algebra, and Trigonometry",
+    duration: "3 Hours",
+    instructions: "Bring your own calculator. No graphing calculators allowed.",
+    notes: "Review previous year's question papers."
+  },
+  {
+    id: "2",
+    subject: "Science",
+    examType: "Term Exam",
+    date: "2024-12-17",
+    time: "01:00 PM - 03:30 PM",
+    location: "Lab 102, Science Block",
+    color: "#F3E8FF",
+    iconColor: "#9333EA",
+    icon: "flask",
+    syllabus: "Organic Chemistry and Thermodynamics",
+    duration: "2.5 Hours",
+    instructions: "Lab coats are mandatory. Follow safety protocols.",
+    notes: "Focus on chemical reactions and formulas."
+  },
+  {
+    id: "3",
+    subject: "Telugu",
+    examType: "Term Exam",
+    date: "2024-12-19",
+    time: "10:00 AM - 01:00 PM",
+    location: "Room 205, Building B",
+    color: "#DCFCE7",
+    iconColor: "#16A34A",
+    icon: "leaf",
+    syllabus: "Literature, Poetry, and Grammar",
+    duration: "3 Hours",
+    instructions: "Use only blue or black ink pens.",
+    notes: "Practice essay writing."
+  },
+  {
+    id: "4",
+    subject: "English Literature",
+    examType: "Term Exam",
+    date: "2024-12-24",
+    time: "02:00 PM - 04:30 PM",
+    location: "Room 108, Building C",
+    color: "#FEF3C7",
+    iconColor: "#CA8A04",
+    icon: "translate",
+    syllabus: "Shakespearean Plays and Victorian Poetry",
+    duration: "2.5 Hours",
+    instructions: "Standard writing materials only.",
+    notes: "Memorize key quotes from Othello."
+  },
+  {
+    id: "5",
+    subject: "Physics",
+    examType: "Final Exam",
+    date: "2025-01-22",
+    time: "09:00 AM - 12:00 PM",
+    location: "Room 401, Building A",
+    color: "#FEE2E2",
+    iconColor: "#DC2626",
+    icon: "atom",
+    syllabus: "Quantum Mechanics and Optics",
+    duration: "3 Hours",
+    instructions: "Formula sheets provided.",
+    notes: "Solve numerical problems from Chapter 4."
+  }
+];

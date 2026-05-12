@@ -21,6 +21,7 @@ import {
 } from "react-native";
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SvgXml } from "react-native-svg";
 import IMAGES, { googleIconSvg } from "../constants/images";
 
@@ -33,12 +34,13 @@ export default function LoginScreen() {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
 
-  const isSmallDevice = height < 750;
-  const imageSize = Math.min(width * 0.9, height * 0.38);
+  const isSmallDevice = height < 720;
+  const imageSize = isSmallDevice ? height * 0.26 : Math.min(width * 0.85, height * 0.42);
 
   // Calculate the fixed height for the top image section
-  const topImageAreaHeight = isSmallDevice ? imageSize + 20 + 15 : imageSize + 80 + 40;
+  const topImageAreaHeight = isSmallDevice ? height * 0.32 : height * 0.5;
 
   // Animated value for the bottom sheet's translateY
   const bottomSheetTranslateY = useRef(new Animated.Value(0)).current;
@@ -48,10 +50,7 @@ export default function LoginScreen() {
       Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
       (event) => {
         const keyboardHeight = event.endCoordinates.height;
-        // Calculate target translateY to move the card up.
-        // The reference code uses keyboardHeight * 0.5, capped at hp("35%").
-        // Let's use a similar logic to ensure the card moves up sufficiently.
-        const targetTranslateY = -keyboardHeight; // Move up by full keyboard height
+        const targetTranslateY = Platform.OS === "ios" ? -keyboardHeight + insets.bottom : -keyboardHeight * 0.6;
         Animated.spring(bottomSheetTranslateY, {
           toValue: targetTranslateY,
           speed: 18,
@@ -140,7 +139,6 @@ export default function LoginScreen() {
         style={[
           styles.topImageSection,
           { height: topImageAreaHeight }, // Fixed height for the image area
-          isSmallDevice ? styles.imageContainerCompact : styles.imageContainerStandard,
         ]}
       >
         <Image
@@ -156,6 +154,9 @@ export default function LoginScreen() {
         style={[
           styles.card,
           styles.bottomSheetAbsolute, // Position absolutely at the bottom
+          { 
+            paddingBottom: Math.max(insets.bottom, 20),
+          },
           { transform: [{ translateY: bottomSheetTranslateY }] }, // Apply animation
         ]}
       >
@@ -166,15 +167,15 @@ export default function LoginScreen() {
         >
           <ScrollView
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.cardScrollContent}
+            contentContainerStyle={[styles.cardScrollContent, { paddingBottom: isSmallDevice ? 20 : 10 }]}
             keyboardShouldPersistTaps="handled" // Important for smooth keyboard dismissal and tap handling
           >
             {/* SHEET HANDLE - Standard production UI element */}
             <View style={styles.sheetHandle} />
 
-            <Text style={styles.title}>Welcome Back</Text>
+            <Text style={[styles.title, !isSmallDevice && { fontSize: 22 }]}>Welcome Back</Text>
 
-            <Text style={styles.subtitle}>
+            <Text style={[styles.subtitle, isSmallDevice ? { marginBottom: 12 } : { marginBottom: 24 }]}>
               Log in to access your account
             </Text>
 
@@ -231,14 +232,14 @@ export default function LoginScreen() {
             </View>
             
             {/* FORGOT PASSWORD LINK */}
-            <TouchableOpacity 
+            {/* <TouchableOpacity 
               style={styles.forgotPasswordButton} 
               activeOpacity={0.7}
               onPress={() => navigation.navigate('ForgotPassword')}>
               <Text style={styles.forgotPasswordText}>
                 Forgot Password?
               </Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
 
             {/* LOGIN BUTTON */}
             <TouchableOpacity
@@ -291,17 +292,7 @@ const styles = StyleSheet.create({
   topImageSection: {
     alignItems: "center",
     justifyContent: "center",
-  },
-
-  // Styles for the fixed image section
-  imageContainerStandard: {
-    paddingTop: 80,
-    paddingBottom: 40,
-  },
-
-  imageContainerCompact: {
-    paddingTop: 20,
-    paddingBottom: 15,
+    backgroundColor: "#FFFFFF",
   },
 
   // This wraps the content inside the animated bottom sheet
@@ -319,8 +310,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 36,
     borderTopRightRadius: 36,
     paddingHorizontal: 28,
-    paddingTop: 28,
-    paddingBottom: 82,
+    paddingTop: 22,
   },
 
   // Positioning for the animated bottom sheet
@@ -347,8 +337,6 @@ const styles = StyleSheet.create({
   },
 
   cardScrollContent: {
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.02)", // Subtle edge definition
   },
 
   sheetHandle: {

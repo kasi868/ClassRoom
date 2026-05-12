@@ -2,7 +2,7 @@ import React, { memo, useRef } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-const DashboardCard = memo(function DashboardCard({ item }) {
+const DashboardCard = memo(function DashboardCard({ item, onPress }) {
   const scale = useRef(new Animated.Value(1)).current;
 
   const animateTo = (value) => {
@@ -17,7 +17,7 @@ const DashboardCard = memo(function DashboardCard({ item }) {
   return (
     <Animated.View style={[styles.animatedWrap, { transform: [{ scale }] }]}>
       <Pressable
-        onPress={item.onPress}
+        onPress={onPress}
         onPressIn={() => animateTo(0.975)}
         onPressOut={() => animateTo(1)}
         android_ripple={{ color: "rgba(37,99,235,0.08)" }}
