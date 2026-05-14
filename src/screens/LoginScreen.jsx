@@ -1,6 +1,4 @@
-// LoginScreen.jsx
-
-import React, { useState, useEffect, useRef} from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   View,
   Text,
@@ -13,30 +11,35 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  useWindowDimensions,
   Animated, // Import Animated
   Keyboard, // Import Keyboard
   Alert, // Import Alert for simple messages
   ActivityIndicator,
 } from "react-native";
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SvgXml } from "react-native-svg";
 import IMAGES, { googleIconSvg } from "../constants/images";
+import { useResponsive } from "../constants/useResponsive";
+import { SCHOOLS } from '../constants/schools'; // Import SCHOOLS from the new central file
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
-  const navigation = useNavigation(); // Hook to access navigation object
+  const navigation = useNavigation();
+  const route = useRoute();
   const [password, setPassword] = useState("");
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { width, height } = useWindowDimensions();
+  const { width, height, isSmallDevice, isTablet } = useResponsive();
   const insets = useSafeAreaInsets();
 
-  const isSmallDevice = height < 720;
+  const selectedSchool = useMemo(() => {
+    return route.params?.selectedSchool || null;
+  }, [route.params?.selectedSchool]);
+
   const imageSize = isSmallDevice ? height * 0.26 : Math.min(width * 0.85, height * 0.42);
 
   // Calculate the fixed height for the top image section
@@ -154,6 +157,7 @@ export default function LoginScreen() {
         style={[
           styles.card,
           styles.bottomSheetAbsolute, // Position absolutely at the bottom
+          isTablet && { width: 500, alignSelf: 'center', left: (width - 500) / 2, borderBottomLeftRadius: 36, borderBottomRightRadius: 36, marginBottom: 20 },
           { 
             paddingBottom: Math.max(insets.bottom, 20),
           },
@@ -172,6 +176,22 @@ export default function LoginScreen() {
           >
             {/* SHEET HANDLE - Standard production UI element */}
             <View style={styles.sheetHandle} />
+
+            {/* SELECTED SCHOOL HEADER - Visible after selection from WelcomeSplash */}
+            {selectedSchool && (
+              <View style={styles.schoolHeaderContainer}>
+                <View style={styles.schoolHeaderRow}>
+                  <Image source={selectedSchool.logo} style={styles.schoolLogoSmall} resizeMode="contain" />
+                  <View style={styles.schoolInfoContent}>
+                    <Text style={styles.schoolNameHeading} numberOfLines={2}>{selectedSchool.name}</Text>
+                    <Text style={styles.schoolOverline} numberOfLines={1}>
+                      {selectedSchool.shortName || 'Institution'}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.schoolHeaderDivider} />
+              </View>
+            )}
 
             <Text style={[styles.title, !isSmallDevice && { fontSize: 22 }]}>Welcome Back</Text>
 
@@ -482,5 +502,42 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.8,
+  },
+  schoolHeaderContainer: {
+    marginBottom: 20,
+    width: '100%',
+  },
+  schoolHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  schoolLogoSmall: {
+    width: 76,
+    height: 76,
+  },
+  schoolInfoContent: {
+    flex: 1,
+    marginLeft: 14,
+    marginRight: 8,
+  },
+  schoolOverline: {
+    fontSize: 21,
+    color: '#1e293b',
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  schoolNameHeading: {
+    fontSize: 21,
+    color: '#1e293b',
+    fontWeight: '700',
+    lineHeight: 28,
+    marginTop: 0,
+  },
+  schoolHeaderDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginTop: 24,
+    width: '100%',
   },
 });

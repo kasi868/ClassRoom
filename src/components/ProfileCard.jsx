@@ -1,15 +1,36 @@
-import React, { memo } from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
+import React, { memo, useState, useEffect, useRef } from "react";
+import { Image, StyleSheet, Text, View, Animated } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import { LinearGradient } from "expo-linear-gradient";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useIsFocused } from "@react-navigation/native";
 
 const RADIUS = 22;
 const STROKE = 6;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 const InitialsAvatar = memo(function InitialsAvatar({ name, image }) {
+  const opacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (image) {
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [image]);
+
   if (image) {
-    return <Image source={image} style={styles.avatarImage} resizeMode="cover" />;
+    // Dynamically resolve source: handle URI strings vs local image requirements
+    const source = typeof image === 'string' ? { uri: image } : image;
+    return (
+      <View style={styles.avatarContainer}>
+        <Animated.Image source={source} style={[styles.avatarImage, { opacity }]} resizeMode="cover" />
+        <View style={styles.avatarBorder} />
+      </View>
+    );
   }
 
   const initials = name
@@ -21,8 +42,11 @@ const InitialsAvatar = memo(function InitialsAvatar({ name, image }) {
     .toUpperCase();
 
   return (
-    <View style={styles.initialsAvatar}>
-      <Text style={styles.initialsText}>{initials}</Text>
+    <View style={styles.avatarContainer}>
+      <View style={styles.initialsAvatar}>
+        <Text style={styles.initialsText}>{initials}</Text>
+      </View>
+      <View style={styles.avatarBorder} />
     </View>
   );
 });
@@ -62,6 +86,25 @@ const AttendanceCircle = memo(function AttendanceCircle({ percentage }) {
 });
 
 const ProfileCard = memo(function ProfileCard({ student, attendance }) {
+  const [displayImage, setDisplayImage] = useState(student.image);
+  const isFocused = useIsFocused();
+
+  // Fetch latest image from AsyncStorage whenever the screen is focused
+  useEffect(() => {
+    const syncProfileImage = async () => {
+      try {
+        const storedImage = await AsyncStorage.getItem("@user_profile_image");
+        if (storedImage) {
+          setDisplayImage(storedImage);
+        }
+      } catch (error) {
+        console.error("ProfileCard: Failed to load stored image", error);
+      }
+    };
+
+    if (isFocused) syncProfileImage();
+  }, [isFocused]);
+
   return (
     <LinearGradient
       colors={["#B8DAFF", "#EFF7FF"]}
@@ -70,7 +113,7 @@ const ProfileCard = memo(function ProfileCard({ student, attendance }) {
       style={styles.outerCard}
     >
       <View style={styles.profileSection}>
-        <InitialsAvatar name={student.name} image={student.image} />
+        <InitialsAvatar name={student.name} image={displayImage} />
         <View style={styles.profileTextWrap}>
           <Text style={styles.studentName} numberOfLines={1}>
             {student.name}
@@ -132,7 +175,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.5)",
     maxWidth: "48%",
-    marginRight: 26, // Moves the card slightly left from the right edge
+    marginRight: 6, // Moves the card slightly left from the right edge
   },
   attendanceInfo: {
     marginRight: 4,
@@ -144,19 +187,33 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  avatarContainer: {
+    position: 'relative',
+    width: 60,
+    height: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   avatarImage: {
-    width: 56,
-    height: 56,
-    borderRadius: 18,
-    backgroundColor: "#EAF2FF",
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: "#FFFFFF",
+  },
+  avatarBorder: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 30,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
+    zIndex: 1,
   },
   initialsAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 18,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#DCEAFE",
+    backgroundColor: "#EFF6FF",
   },
   initialsText: {
     color: "#2563EB",

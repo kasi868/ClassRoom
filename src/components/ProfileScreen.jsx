@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useCallback } from "react";
+import React, { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -17,10 +17,12 @@ import {
   Modal,
   Animated,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
 import { BlurView } from "expo-blur";
 import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useResponsive } from "../constants/useResponsive"; // Ensure this matches file location
 
 import {
   Ionicons,
@@ -153,7 +155,7 @@ const guardians = [
   },
 ];
 
-const InfoCard = ({ item }) => {
+const InfoCard = React.memo(({ item }) => {
   return (
     <View style={styles.infoItem}>
       <View
@@ -180,9 +182,9 @@ const InfoCard = ({ item }) => {
       </View>
     </View>
   );
-};
+});
 
-const GuardianCard = ({ item, isExpanded, onToggle }) => {
+const GuardianCard = React.memo(({ item, isExpanded, onToggle }) => {
   return (
     <View style={styles.guardianWrapper}>
       <View
@@ -261,11 +263,12 @@ const GuardianCard = ({ item, isExpanded, onToggle }) => {
       </TouchableOpacity>
     </View>
   );
-};
+});
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { width, isTablet } = useResponsive();
 
   // Dynamic Attendance Logic (Synchronized with AttendanceScreen/HomeScreen)
   const attendancePercentage = useMemo(() => {
@@ -312,6 +315,14 @@ const ProfileScreen = () => {
   const [email, setEmail] = useState("emily.johnson@school.edu");
   const [phone, setPhone] = useState("+91 9898767654");
   const [expandedGuardianId, setExpandedGuardianId] = useState(null);
+
+  useEffect(() => {
+    const loadStoredImage = async () => {
+      const savedImage = await AsyncStorage.getItem("@user_profile_image");
+      if (savedImage) setProfileImage(savedImage);
+    };
+    loadStoredImage();
+  }, []);
 
   // Animation Values
   const toastOpacity = useRef(new Animated.Value(0)).current;
@@ -373,14 +384,19 @@ const ProfileScreen = () => {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsSaving(true);
-    // Simulate professional API delay
-    setTimeout(() => {
+    try {
+      await AsyncStorage.setItem("@user_profile_image", profileImage);
+      // Simulate professional API delay
+      await new Promise(resolve => setTimeout(resolve, 1200));
       setIsSaving(false);
       setIsEditing(false);
       showToast();
-    }, 1500);
+    } catch (error) {
+      setIsSaving(false);
+      console.error("Error saving profile image:", error);
+    }
   };
 
   const handleCancel = () => {
@@ -400,10 +416,11 @@ const ProfileScreen = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingBottom: Math.max(insets.bottom, 40),
+          alignItems: 'center',
         }}
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { width: '100%', maxWidth: 800 }]}>
           <TouchableOpacity
             onPress={isEditing ? handleCancel : () => navigation.goBack()}
             style={styles.backButton}
@@ -435,7 +452,7 @@ const ProfileScreen = () => {
         </View>
 
         {/* Hero Card */}
-        <View style={styles.heroCard}>
+        <View style={[styles.heroCard, { width: isTablet ? '90%' : '94%', maxWidth: 800 }]}>
           <View style={styles.imageWrapper}>
             <Image
               source={{ uri: profileImage }}
@@ -499,7 +516,7 @@ const ProfileScreen = () => {
         </View>
 
         {/* Personal Information */}
-        <View style={styles.sectionCard}>
+        <View style={[styles.sectionCard, { width: isTablet ? '90%' : '94%', maxWidth: 800 }]}>
           <Text style={styles.sectionTitle}>
             Personal Information
           </Text>
@@ -539,7 +556,7 @@ const ProfileScreen = () => {
         </View>
 
         {/* Academic Information */}
-        <View style={styles.sectionCard}>
+        <View style={[styles.sectionCard, { width: isTablet ? '90%' : '94%', maxWidth: 800 }]}>
           <Text style={styles.sectionTitle}>
             Academic Information
           </Text>
@@ -553,7 +570,7 @@ const ProfileScreen = () => {
         </View>
 
         {/* Guardians */}
-        <View style={styles.sectionCard}>
+        <View style={[styles.sectionCard, { width: isTablet ? '90%' : '94%', maxWidth: 800 }]}>
           <Text style={styles.sectionTitle}>
             Parents & Guardians
           </Text>
@@ -571,7 +588,7 @@ const ProfileScreen = () => {
         {/* Logout */}
         <TouchableOpacity
           activeOpacity={0.8}
-          style={styles.logoutButton}
+          style={[styles.logoutButton, { width: isTablet ? '90%' : '94%', maxWidth: 800 }]}
           onPress={() => toggleLogoutModal(true)}
         >
           <MaterialCommunityIcons

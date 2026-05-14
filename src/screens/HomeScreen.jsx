@@ -4,13 +4,14 @@ import {
   FlatList,
   Pressable,
   SafeAreaView,
+  Image,
   StatusBar,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -21,6 +22,7 @@ import NoticeCard from "../components/NoticeCard";
 import ProfileCard from "../components/ProfileCard";
 import MenuBarScreen from "../components/MenuBarScreen";
 import IMAGES from "../constants/images";
+import { useResponsive } from "../constants/useResponsive";
 
 const theme = {
   colors: {
@@ -48,7 +50,7 @@ const student = {
   className: "Class 7 - B",
   rollNumber: "03",
   academicYear: "2025 - 2026",
-  image: null,
+  image: "https://randomuser.me/api/portraits/men/46.jpg", // Matches ProfileScreen default
 };
 
 const ACADEMIC_RECORDS = [
@@ -169,7 +171,15 @@ const recentNotices = [
   },
 ];
 
-function Header({ topInset, onMenuPress, onNotificationPress, onProfilePress }) {
+function Header({ topInset, onMenuPress, onNotificationPress, onProfilePress, profileImage }) {
+  const initials = student.name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+
   return (
     <View style={[styles.header, { paddingTop: Math.max(topInset, 10) + 8 }]}>
       <Pressable
@@ -207,7 +217,11 @@ function Header({ topInset, onMenuPress, onNotificationPress, onProfilePress }) 
         accessible 
         accessibilityLabel="View profile"
       >
-        <Text style={styles.headerAvatarText}>AS</Text>
+        {profileImage ? (
+          <Image source={{ uri: profileImage }} style={styles.headerAvatarImage} />
+        ) : (
+          <Text style={styles.headerAvatarText}>{initials}</Text>
+        )}
       </Pressable>
     </View>
   );
@@ -235,13 +249,32 @@ function SectionHeader({ title, actionLabel, onActionPress }) {
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  const { width, height } = useWindowDimensions();
+  const { width, isTablet } = useResponsive();
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const containerMaxWidth = 1200;
 
   // Drawer Logic
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuAnim = useRef(new Animated.Value(0)).current; // 0 = closed, 1 = open
   const drawerWidth = width * 0.62; // Reduced width for a cleaner look
+
+  const [userProfileImage, setUserProfileImage] = useState(student.image);
+
+  const loadProfileImage = useCallback(async () => {
+    try {
+      const savedImage = await AsyncStorage.getItem("@user_profile_image");
+      if (savedImage) {
+        setUserProfileImage(savedImage);
+      }
+    } catch (e) {
+      console.error("Failed to load profile image", e);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadProfileImage();
+    return navigation.addListener('focus', loadProfileImage);
+  }, [navigation, loadProfileImage]);
 
   // Dynamic Attendance Calculation Logic (Synchronized with AttendanceScreen)
   const attendanceStats = useMemo(() => {
@@ -366,10 +399,11 @@ export default function HomeScreen() {
   }, [fadeAnim]);
 
   const categoryCardWidth = useMemo(() => {
-    const horizontalPadding = theme.spacing.page * 2; // Left and right padding
-    const columnGap = 10 * 3;
-    return Math.floor((width - horizontalPadding - columnGap) / 4);
-  }, [width]);
+    const effectiveWidth = Math.min(width, containerMaxWidth);
+    const horizontalPadding = theme.spacing.page * 2;
+    const columnGap = 10 * (isTablet ? 5 : 3);
+    return Math.floor((effectiveWidth - horizontalPadding - columnGap) / (isTablet ? 6 : 4));
+  }, [width, isTablet]);
 
   const renderDashboardCard = useCallback(
     (item) => (
@@ -408,7 +442,7 @@ export default function HomeScreen() {
   const ListHeader = useMemo(
     () => (
       <Animated.View style={[styles.body, { opacity: fadeAnim }]}>
-        <ProfileCard student={student} attendance={attendanceStats} />
+        <ProfileCard student={{ ...student, image: userProfileImage }} attendance={attendanceStats} />
 
         <View style={styles.statsGrid}>
           <View style={styles.statsRow}>{dashboardStats.slice(0, 2).map(renderDashboardCard)}</View>
@@ -417,9 +451,7 @@ export default function HomeScreen() {
 
         <SectionHeader title="Categories" />
       </Animated.View>
-    ),
-    [fadeAnim, renderDashboardCard, dashboardStats]
-  );
+    ), [fadeAnim, renderDashboardCard, dashboardStats, isTablet]); // Removed the extra ')' and ';'
 
   const ListFooter = useMemo(
     () => (
@@ -449,13 +481,15 @@ export default function HomeScreen() {
         onMenuPress={() => toggleMenu(true)}
         onNotificationPress={() => navigation.navigate("Notices")}
         onProfilePress={() => navigation.navigate("Profile")}
+        profileImage={userProfileImage}
       />
 
       <FlatList
         data={categoryItems}
         renderItem={renderCategory}
         keyExtractor={(item) => item.id}
-        numColumns={4}
+        numColumns={isTablet ? 6 : 4}
+        key={isTablet ? 'tablet' : 'mobile'}
         ListHeaderComponent={ListHeader}
         ListFooterComponent={ListFooter}
         showsVerticalScrollIndicator={false}
@@ -512,6 +546,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.page,
     paddingBottom: 12,
     backgroundColor: "rgba(245,247,251,0.96)",
+    maxWidth: 1200,
+    alignSelf: 'center',
     borderBottomWidth: 1,
     borderBottomColor: "rgba(229,231,235,0.72)",
     shadowColor: "#0F172A",
@@ -578,6 +614,12 @@ const styles = StyleSheet.create({
     borderColor: "#FFFFFF",
     overflow: "hidden",
   },
+  headerAvatarImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 19,
+    backgroundColor: "#DCEAFE",
+  },
   headerAvatarText: {
     color: theme.colors.primary,
     fontSize: 13,
@@ -597,6 +639,10 @@ const styles = StyleSheet.create({
   },
   statsGrid: {
     marginBottom: theme.spacing.section,
+  },
+  statsGridTablet: {
+    flexDirection: 'row',
+    gap: 12,
   },
   statsRow: {
     flexDirection: "row",

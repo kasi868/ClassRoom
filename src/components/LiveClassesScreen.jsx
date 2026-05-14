@@ -20,6 +20,7 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
+import { useResponsive } from "../constants/useResponsive";
 
 import {
   Ionicons,
@@ -272,6 +273,8 @@ const ClassInformationCard = memo(({
 const LiveClassesScreen = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { width, isTablet } = useResponsive();
+  
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const classInfoCardAnim = useRef(new Animated.Value(0)).current; // For the new card's appearance
   const joiningOpacity = useRef(new Animated.Value(0)).current;
@@ -522,7 +525,11 @@ const LiveClassesScreen = () => {
       </View>
 
       {/* Live Card (Blue Hero Card) */}
-      <View style={[styles.liveCard, classStatus === "COMPLETED" && styles.liveCardCompleted, classStatus === "ENDING_SOON" && styles.liveCardWarning]}>
+      <View style={[
+        styles.liveCard, 
+        classStatus === "COMPLETED" && styles.liveCardCompleted, 
+        classStatus === "ENDING_SOON" && styles.liveCardWarning,
+        { maxWidth: 800, alignSelf: 'center', width: isTablet ? '90%' : '94%' }]}>
         <View style={styles.topRow}>
           {(classStatus === "LIVE" || classStatus === "ENDING_SOON") ? (
             <View style={[styles.liveBadge, classStatus === "ENDING_SOON" && { backgroundColor: 'rgba(0,0,0,0.2)' }]}>
@@ -614,16 +621,18 @@ const LiveClassesScreen = () => {
       </View>
 
       {/* Class Information Card (New White Card) */}
-      <ClassInformationCard
-        joinedCount={joinedCount}
-        maxCapacity={activeSession.maxCapacity}
-        classStatus={classStatus}
-        activeSession={activeSession}
-        pulseAnim={classInfoCardAnim} // Use a separate animation for the card itself
-      />
+      <View style={{ maxWidth: 800, alignSelf: 'center', width: '100%' }}>
+        <ClassInformationCard
+          joinedCount={joinedCount}
+          maxCapacity={activeSession.maxCapacity}
+          classStatus={classStatus}
+          activeSession={activeSession}
+          pulseAnim={classInfoCardAnim} 
+        />
+      </View>
 
       {/* Tab Switcher */}
-      <View style={styles.tabContainer}>
+      <View style={[styles.tabContainer, { maxWidth: 800, alignSelf: 'center', width: isTablet ? '90%' : '94%' }]}>
         <TouchableOpacity 
           onPress={() => handleTabChange("schedule")}
           style={[styles.tabButton, activeTab === "schedule" && styles.activeTabButton]}

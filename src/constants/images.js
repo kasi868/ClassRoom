@@ -1,6 +1,11 @@
 const images = {
   logo: require('../../assets/logo.png'),
   splashBackground: require('../../assets/splash.png'),
+  AACHI_GLOBAL_SCHOOL_LOGO: require('../../assets/Aachi.png'),
+  i7_WORLD_SCHOOL_LOGO: require('../../assets/i7.png'),
+  AK_CHILDREN_SCHOOL_LOGO: require('../../assets/A.K.png'),
+  AJIVASAN_SCHOOL_LOGO: require('../../assets/Ajivasan.png'),
+  ADITYA_SCHOOL_LOGO: require('../../assets/Aditya.png'),
   loginIllustration: require('../../assets/Login.png'),
   Attendance: require('../../assets/Home/Attendance.png'),
   Calender: require('../../assets/Home/Calender.png'),
