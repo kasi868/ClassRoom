@@ -508,9 +508,9 @@ const TimeTableScreen = () => {
         {/* Note */}
         <View style={styles.noteCard}>
           <View style={styles.noteIcon}>
-            <MaterialCommunityIcons
-              name="alert-circle-outline"
-              size={22}
+            <Ionicons
+              name="alert-circle"
+              size={20}
               color="#16A34A"
             />
           </View>

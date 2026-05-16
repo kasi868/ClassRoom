@@ -798,6 +798,7 @@ const styles = StyleSheet.create({
 
   footerText: {
     fontSize: 12,
+    fontWeight: "500",
     color: "#166534",
     marginLeft: 10,
     flex: 1,

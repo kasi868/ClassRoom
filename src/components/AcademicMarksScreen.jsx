@@ -115,17 +115,7 @@ const AcademicMarksScreen = () => {
             <Ionicons name="chevron-back" size={26} color="#111827" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Academic Marks</Text>
-          <TouchableOpacity 
-            onPress={handleDownloadReport}
-            disabled={isDownloading}
-            style={styles.downloadHeaderBtn}
-          >
-            {isDownloading ? (
-              <ActivityIndicator size="small" color="#2563EB" />
-            ) : (
-              <Feather name="download" size={20} color="#2563EB" />
-            )}
-          </TouchableOpacity>
+         
         </View>
 
         {/* Top Blue Card */}

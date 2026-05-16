@@ -42,8 +42,9 @@ export default function LoginScreen() {
 
   const imageSize = isSmallDevice ? height * 0.26 : Math.min(width * 0.85, height * 0.42);
 
-  // Calculate the fixed height for the top image section
-  const topImageAreaHeight = isSmallDevice ? height * 0.32 : height * 0.5;
+  // Professional logo scaling: Dynamic width based on device type
+  const logoWidth = isSmallDevice ? width * 0.55 : (isTablet ? 220 : 200);
+  const logoHeight = logoWidth * 0.74; // Maintains original aspect ratio
 
   // Animated value for the bottom sheet's translateY
   const bottomSheetTranslateY = useRef(new Animated.Value(0)).current;
@@ -141,14 +142,19 @@ export default function LoginScreen() {
       <View
         style={[
           styles.topImageSection,
-          { height: topImageAreaHeight }, // Fixed height for the image area
+          { height: isSmallDevice ? height * 0.35 : height * 0.45 }, 
         ]}
       >
-        <Image
-          source={IMAGES.loginIllustration}
-          style={[styles.image, { width: imageSize, height: imageSize }]}
-          resizeMode="contain"
-        />
+        <View style={styles.logoContainer}>
+          <Image
+            source={IMAGES.logo}
+            style={[styles.logoImage, { width: logoWidth, height: logoHeight }]}
+            resizeMode="contain"
+          />
+
+          <Text style={styles.appTitle}>Maxzen</Text>
+          <Text style={styles.appSubtitle}>School Management System</Text>
+        </View>
       </View>
 
       {/* ANIMATED BOTTOM SHEET (LOGIN CARD) */}
@@ -313,6 +319,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#FFFFFF",
+    paddingTop: 8,
   },
 
   // This wraps the content inside the animated bottom sheet
@@ -322,6 +329,26 @@ const styles = StyleSheet.create({
 
   image: {
     // Dynamics sizes handled via inline style
+  },
+
+  logoContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoImage: {
+    marginBottom: 12,
+  },
+  appTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  appSubtitle: {
+    fontSize: 14,
+    color: '#165DB8',
+    fontWeight: '600',
   },
 
   card: {

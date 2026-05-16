@@ -429,9 +429,9 @@ const FeeDetailsScreen = () => {
         {/* Note */}
         <View style={styles.noteCard}>
           <View style={styles.noteIcon}>
-            <MaterialCommunityIcons
-              name="alert-circle-outline"
-              size={22}
+            <Ionicons
+              name="alert-circle"
+              size={20}
               color="#16A34A"
             />
           </View>
@@ -741,8 +741,8 @@ const styles = StyleSheet.create({
   noteIcon: {
     width: 36,
     height: 36,
-    borderRadius: 20,
-    backgroundColor: "#DDF7E4",
+    borderRadius: 9,
+    backgroundColor: "#CDEADA",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
@@ -751,7 +751,7 @@ const styles = StyleSheet.create({
   noteTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#111",
+    color: "#15803D",
     marginBottom: 6,
   },
 

@@ -745,7 +745,7 @@ const styles = StyleSheet.create({
   routePlaceContainer: { flex: 1, paddingLeft: 10 },
   routePlace: { fontSize: 14, color: "#444", fontWeight: "500" },
   activePlace: { color: "#2D7FF9", fontWeight: "700" },
-  completedPlace: { color: "#27AE60", opacity: 0.7 },
+  completedPlace: { color: "#0b150f", opacity: 0.7 , fontWeight: "600"},
   routeSub: { color: "#888", fontSize: 12 },
   routeTime: { fontSize: 13, color: "#111", fontWeight: "700" },
   feeContainer: {

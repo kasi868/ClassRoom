@@ -257,10 +257,10 @@ const NoticesScreen = () => {
           ))}
         </View>
 
-        {/* Footer Info */}
+        {/* Informational Footer */}
         <View style={styles.footerCard}>
-          <View style={styles.footerIcon}>
-            <Feather name="info" size={16} color="#22C55E" />
+          <View style={styles.footerIconContainer}>
+            <Ionicons name="alert-circle" size={24} color="#15803D" />
           </View>
 
           <Text style={styles.footerText}>
@@ -438,28 +438,31 @@ const styles = StyleSheet.create({
   footerCard: {
     marginTop: 18,
     marginHorizontal: 16,
-    backgroundColor: "#EEF8F1",
-    borderRadius: 14,
-    padding: 16,
+    backgroundColor: "#EFF8F3",
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: '#E6F6EE',
   },
 
-  footerIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 20,
-    backgroundColor: "#DDF5E5",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
+  footerIconContainer: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: '#DCFCE7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
   },
 
   footerText: {
     flex: 1,
-    fontSize: 12,
-    color: "#666",
-    lineHeight: 18,
-    fontWeight: "500",
+    fontSize: 14,
+    color: '#334155',
+    lineHeight: 20,
+    fontWeight: '600',
   },
 });
