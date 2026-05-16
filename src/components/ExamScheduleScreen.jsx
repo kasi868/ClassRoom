@@ -281,6 +281,7 @@ const ExamScheduleScreen = () => {
           <TouchableOpacity
             activeOpacity={0.8}
             style={styles.materialButton}
+            onPress={() => navigation.navigate("Subjects")}
           >
             <Text style={styles.materialButtonText}>
               View Study Materials

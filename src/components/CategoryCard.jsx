@@ -24,9 +24,7 @@ const CategoryCard = memo(function CategoryCard({ item, width, onPress }) {
         accessibilityLabel={item.title}
         style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
       >
-        <View style={[styles.iconWrap, { backgroundColor: item.backgroundColor }]}>
-          <Image source={item.icon} style={styles.icon} resizeMode="contain" />
-        </View>
+        <Image source={item.icon} style={styles.icon} resizeMode="contain" />
         <Text style={styles.title} numberOfLines={2}>
           {item.title}
         </Text>
@@ -54,19 +52,10 @@ const styles = StyleSheet.create({
   cardPressed: {
     opacity: 0.9,
   },
-  iconWrap: {
-    width: 62,
-    height: 62,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.02)",
-  },
   icon: {
-    width: 42,
-    height: 42,
+    width: 62,
+    height: 52,
+    marginBottom: 10,
   },
   title: {
     color: "#111827",

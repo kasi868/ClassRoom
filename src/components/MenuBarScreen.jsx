@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Animated,
   Pressable,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
@@ -26,12 +27,12 @@ const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 const menuItems = [
   {
     title: "Profile",
-    icon: <Ionicons name="person-outline" size={20} color="#2F80ED" />,
+    icon: <Ionicons name="person-outline" size={20} color="#2563EB" />,
     screen: "Profile",
   },
   {
     title: "Time Table",
-    icon: <MaterialIcons name="event-note" size={20} color="#2F80ED" />,
+    icon: <MaterialIcons name="event-note" size={20} color="#2563EB" />,
     screen: "TimeTable",
   },
   {
@@ -40,19 +41,19 @@ const menuItems = [
       <MaterialCommunityIcons
         name="book-education-outline"
         size={20}
-        color="#2F80ED"
+        color="#2563EB"
       />
     ),
     screen: "Subjects",
   },
   {
     title: "Academic Marks",
-    icon: <Feather name="file-text" size={20} color="#2F80ED" />,
+    icon: <Feather name="file-text" size={20} color="#2563EB" />,
     screen: "Marks",
   },
   {
     title: "Transport",
-    icon: <Ionicons name="bus-outline" size={20} color="#2F80ED" />,
+    icon: <Ionicons name="bus-outline" size={20} color="#2563EB" />,
     screen: "Transport",
   },
   {
@@ -61,14 +62,14 @@ const menuItems = [
       <MaterialCommunityIcons
         name="clipboard-text-outline"
         size={20}
-        color="#2F80ED"
+        color="#2563EB"
       />
     ),
     screen: "Assignments",
   },
   {
     title: "Live Classes",
-    icon: <Feather name="video" size={20} color="#2F80ED" />,
+    icon: <Feather name="video" size={20} color="#2563EB" />,
     screen: "LiveClasses",
   },
   {
@@ -77,14 +78,14 @@ const menuItems = [
       <MaterialCommunityIcons
         name="bullhorn-outline"
         size={20}
-        color="#2F80ED"
+        color="#2563EB"
       />
     ),
     screen: "Notices",
   },
   {
     title: "Calendar",
-    icon: <Ionicons name="calendar-outline" size={20} color="#2F80ED" />,
+    icon: <Ionicons name="calendar-outline" size={20} color="#2563EB" />,
     screen: "Calendar",
   },
   {
@@ -93,7 +94,7 @@ const menuItems = [
       <MaterialCommunityIcons
         name="credit-card-outline"
         size={20}
-        color="#2F80ED"
+        color="#2563EB"
       />
     ),
     screen: "FeeDetails",
@@ -104,7 +105,7 @@ const menuItems = [
       <MaterialCommunityIcons
         name="clipboard-outline"
         size={20}
-        color="#2F80ED"
+        color="#2563EB"
       />
     ),
     screen: "ExamSchedule",
@@ -117,9 +118,41 @@ const MenuBarScreen = ({ navigation, user = {
   image: null
 } }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [profileImage, setProfileImage] = useState(user.image);
   const insets = useSafeAreaInsets();
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const imageOpacity = useRef(new Animated.Value(0)).current;
+
+  // Fetch the latest profile image from AsyncStorage whenever the menu renders
+  useEffect(() => {
+    const loadStoredImage = async () => {
+      try {
+        const savedImage = await AsyncStorage.getItem("@user_profile_image");
+        if (savedImage) {
+          setProfileImage(savedImage);
+        }
+      } catch (error) {
+        console.error("MenuBarScreen: Failed to fetch profile image", error);
+      }
+    };
+    loadStoredImage();
+  }, []);
+
+  useEffect(() => {
+    if (profileImage) {
+      Animated.timing(imageOpacity, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [profileImage]);
+
+  const initials = useMemo(() => {
+    if (!user.name) return "";
+    return user.name.split(" ").filter(Boolean).slice(0, 2).map(n => n[0]).join("").toUpperCase();
+  }, [user.name]);
 
   const toggleModal = (visible) => {
     if (visible) {
@@ -160,13 +193,14 @@ const MenuBarScreen = ({ navigation, user = {
         {/* USER PROFILE HEADER SECTION */}
         <View style={[styles.profileHeader, { paddingTop: Math.max(insets.top, 16) + 8 }]}>
           <View style={styles.avatarWrapper}>
-            {user.image ? (
-              <Image source={user.image} style={styles.avatar} />
+            {profileImage ? (
+              <Animated.Image 
+                source={typeof profileImage === 'string' ? { uri: profileImage } : profileImage} 
+                style={[styles.avatar, { opacity: imageOpacity }]} 
+              />
             ) : (
               <View style={styles.initialsAvatar}>
-                <Text style={styles.initialsText}>
-                  {user.name.split(" ").filter(Boolean).slice(0, 2).map(n => n[0]).join("").toUpperCase()}
-                </Text>
+                <Text style={styles.initialsText}>{initials}</Text>
               </View>
             )}
             <View style={styles.onlineStatus} />
@@ -335,13 +369,15 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: "#E5E7EB",
+    backgroundColor: "#F1F5F9",
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
   },
   initialsAvatar: {
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: "#DCEAFE",
+    backgroundColor: "#EFF6FF",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,

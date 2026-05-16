@@ -519,12 +519,9 @@ const TimeTableScreen = () => {
             <Text style={styles.noteTitle}>Note</Text>
 
             <Text style={styles.noteText}>
-              This timetable is effective from May 20 2025.
+              Late fee of  100 per day will be applicable after the due date.
             </Text>
 
-            <Text style={styles.noteText}>
-              Timings may change on special occasions.
-            </Text>
           </View>
         </View>
       </ScrollView>
@@ -948,7 +945,7 @@ const styles = StyleSheet.create({
   noteTitle: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#2563EB",
+    color: "#15803D",
     marginBottom: 4,
   },
 
