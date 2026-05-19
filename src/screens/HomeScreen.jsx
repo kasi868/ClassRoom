@@ -44,14 +44,47 @@ const theme = {
   },
 };
 
+const STORAGE_KEYS = {
+  STUDENT_IMAGE: "@student_profile_image",
+  PARENT_IMAGE: "@parent_profile_image",
+  PARENT_PREFS: "@parent_preferences",
+  GUARDIAN_PREFIX: "@guardian_image_",
+  STUDENT_DATA: "@student_data",
+  GUARDIAN_DATA_PREFIX: "@guardian_data_",
+};
+
 const student = {
   name: "Anandh Sharma",
-  displayName: "Mr. Rajesh Sharma",
+  displayName: "Anandh Sharma",
   className: "Class 7 - B",
   rollNumber: "03",
   academicYear: "2025 - 2026",
-  image: "https://randomuser.me/api/portraits/men/46.jpg", // Matches ProfileScreen default
+  image: "https://randomuser.me/api/portraits/men/12.jpg", // Student-appropriate portrait
 };
+
+const GUARDIANS = [
+  {
+    id: 1,
+    name: "Michael Johnson",
+    relation: "Father",
+    image: "https://randomuser.me/api/portraits/men/32.jpg",
+    color: "#2563EB",
+  },
+  {
+    id: 2,
+    name: "Sarah Johnson",
+    relation: "Mother",
+    image: "https://randomuser.me/api/portraits/women/44.jpg",
+    color: "#EC4899",
+  },
+  {
+    id: 3,
+    name: "Jennifer Smith",
+    relation: "Emergency Contact",
+    image: "https://randomuser.me/api/portraits/women/68.jpg",
+    color: "#22C55E",
+  },
+];
 
 const ACADEMIC_RECORDS = [
   { id: 1, subject: "English", marks: 98, total: 100, grade: "A+", remarks: "Outstanding" },
@@ -171,8 +204,27 @@ const recentNotices = [
   },
 ];
 
-function Header({ topInset, onMenuPress, onNotificationPress, onProfilePress, profileImage }) {
-  const initials = student.name
+function Header({ topInset, onMenuPress, onNotificationPress, onProfilePress, parent }) {
+  const layout = useResponsive();
+  const styles = useMemo(() => createStyles(layout), [layout]);
+
+  const titlePrefix = useMemo(() => {
+    const relation = (parent?.relation || "").toLowerCase();
+    if (relation.includes("father") || relation.includes("uncle")) return "Mr. ";
+    if (relation.includes("mother")) return "Mrs. ";
+    if (relation.includes("aunt")) return "Ms. ";
+    return "";
+  }, [parent?.relation]);
+
+  const timeGreeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return "Good Morning";
+    if (hour >= 12 && hour < 17) return "Good Afternoon";
+    if (hour >= 17 && hour < 21) return "Good Evening";
+    return "Good Night";
+  }, []);
+
+  const initials = (parent?.name || "User")
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
@@ -193,9 +245,9 @@ function Header({ topInset, onMenuPress, onNotificationPress, onProfilePress, pr
       </Pressable>
 
       <View style={styles.headerTitleWrap}>
-        <Text style={styles.greeting}>Good Morning</Text>
+        <Text style={styles.greeting}>{timeGreeting}</Text>
         <Text style={styles.headerName} numberOfLines={1}>
-          {student.displayName}
+          {titlePrefix}{parent?.name}
         </Text>
       </View>
 
@@ -217,8 +269,8 @@ function Header({ topInset, onMenuPress, onNotificationPress, onProfilePress, pr
         accessible 
         accessibilityLabel="View profile"
       >
-        {profileImage ? (
-          <Image source={{ uri: profileImage }} style={styles.headerAvatarImage} />
+        {parent?.image ? (
+          <Image source={{ uri: parent.image }} style={styles.headerAvatarImage} />
         ) : (
           <Text style={styles.headerAvatarText}>{initials}</Text>
         )}
@@ -228,6 +280,9 @@ function Header({ topInset, onMenuPress, onNotificationPress, onProfilePress, pr
 }
 
 function SectionHeader({ title, actionLabel, onActionPress }) {
+  const layout = useResponsive();
+  const styles = useMemo(() => createStyles(layout), [layout]);
+
   return (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -249,32 +304,98 @@ function SectionHeader({ title, actionLabel, onActionPress }) {
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  const { width, isTablet } = useResponsive();
+  const layout = useResponsive();
+  const { width, isTablet, spacing, gridColumns, gridItemWidth } = layout;
+  const styles = useMemo(() => createStyles(layout), [layout]);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const containerMaxWidth = 1200;
 
   // Drawer Logic
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuAnim = useRef(new Animated.Value(0)).current; // 0 = closed, 1 = open
-  const drawerWidth = width * 0.62; // Reduced width for a cleaner look
+  const drawerWidth = Math.min(width * (isTablet ? 0.42 : 0.78), 420);
 
   const [userProfileImage, setUserProfileImage] = useState(student.image);
+  const [dynamicStudent, setDynamicStudent] = useState({
+    name: student.name,
+    className: student.className,
+    rollNumber: "03",
+    academicYear: student.academicYear,
+    section: "Section B",
+    id: "ST2024001",
+  });
+  const [dynamicParent, setDynamicParent] = useState(null);
 
-  const loadProfileImage = useCallback(async () => {
+  // Dynamic Guardian Priority Logic: Father > Mother > Emergency Contact
+  const defaultGuardian = useMemo(() => {
+    const father = GUARDIANS.find(g => g.relation === "Father");
+    if (father) return father;
+    
+    const mother = GUARDIANS.find(g => g.relation === "Mother");
+    if (mother) return mother;
+
+    return GUARDIANS.find(g => g.relation.includes("Emergency")) || GUARDIANS[0];
+  }, []);
+
+  const primaryGuardian = useMemo(() => {
+    return dynamicParent || defaultGuardian;
+  }, [defaultGuardian, dynamicParent]);
+
+  const loadStoredData = useCallback(async () => {
     try {
-      const savedImage = await AsyncStorage.getItem("@user_profile_image");
-      if (savedImage) {
-        setUserProfileImage(savedImage);
+      // Fetch Student Data & Image
+      const [savedStudentImg, savedStudentData] = await Promise.all([
+        AsyncStorage.getItem(STORAGE_KEYS.STUDENT_IMAGE),
+        AsyncStorage.getItem(STORAGE_KEYS.STUDENT_DATA),
+      ]);
+
+      if (savedStudentImg) setUserProfileImage(savedStudentImg);
+      
+      try {
+        if (savedStudentData) {
+          const parsed = JSON.parse(savedStudentData);
+          if (parsed && typeof parsed === 'object') {
+            setDynamicStudent(prev => ({ 
+              ...prev, 
+              ...parsed,
+              // Mapping 'grade' from Profile Screen to 'className' for internal consistency
+              className: parsed.grade || parsed.className || prev.className,
+            }));
+          }
+        }
+      } catch (parseError) {
+        console.error("HomeScreen: Student data parse error", parseError);
+        // Fallback handled by keeping initial state
       }
+
+      // Fetch Primary Guardian (Priority: Father ID 1)
+      const gId = 1; 
+      const [gImg, gData] = await Promise.all([
+        AsyncStorage.getItem(`${STORAGE_KEYS.GUARDIAN_PREFIX}${gId}`),
+        AsyncStorage.getItem(`${STORAGE_KEYS.GUARDIAN_DATA_PREFIX}${gId}`),
+      ]);
+
+      if (gImg || gData) {
+        const parsedData = gData ? JSON.parse(gData) : {};
+        const baseGuardian = GUARDIANS.find(g => g.id === gId) || GUARDIANS[0];
+        
+        setDynamicParent({
+          ...baseGuardian,
+          ...parsedData,
+          image: gImg || baseGuardian.image,
+        });
+      }
+      
     } catch (e) {
-      console.error("Failed to load profile image", e);
+      console.error("Failed to load stored preferences", e);
     }
   }, []);
 
   useEffect(() => {
-    loadProfileImage();
-    return navigation.addListener('focus', loadProfileImage);
-  }, [navigation, loadProfileImage]);
+    loadStoredData();
+    // Refresh data when returning to screen to reflect updates from ProfileScreen
+    return navigation.addListener('focus', loadStoredData);
+  }, [navigation, loadStoredData]);
 
   // Dynamic Attendance Calculation Logic (Synchronized with AttendanceScreen)
   const attendanceStats = useMemo(() => {
@@ -398,12 +519,21 @@ export default function HomeScreen() {
     }).start();
   }, [fadeAnim]);
 
-  const categoryCardWidth = useMemo(() => {
-    const effectiveWidth = Math.min(width, containerMaxWidth);
-    const horizontalPadding = theme.spacing.page * 2;
-    const columnGap = 10 * (isTablet ? 5 : 3);
-    return Math.floor((effectiveWidth - horizontalPadding - columnGap) / (isTablet ? 6 : 4));
-  }, [width, isTablet]);
+  const categoryColumns = gridColumns("category");
+  const dashboardColumns = gridColumns("dashboard");
+
+  const categoryCardWidth = useMemo(
+    () => gridItemWidth(categoryColumns, spacing.page, spacing.gap, containerMaxWidth),
+    [categoryColumns, gridItemWidth, spacing.gap, spacing.page]
+  );
+
+  const dashboardRows = useMemo(() => {
+    const rows = [];
+    for (let i = 0; i < dashboardStats.length; i += dashboardColumns) {
+      rows.push(dashboardStats.slice(i, i + dashboardColumns));
+    }
+    return rows;
+  }, [dashboardColumns, dashboardStats]);
 
   const renderDashboardCard = useCallback(
     (item) => (
@@ -422,8 +552,8 @@ export default function HomeScreen() {
       <View
         style={[
           styles.categoryItem,
-          index % 4 === 0 && styles.categoryItemFirst,
-          (index + 1) % 4 === 0 && styles.categoryItemLast,
+          index % categoryColumns === 0 && styles.categoryItemFirst,
+          (index + 1) % categoryColumns === 0 && styles.categoryItemLast,
         ]}
       >
         <CategoryCard
@@ -434,7 +564,7 @@ export default function HomeScreen() {
         />
       </View>
     ),
-    [categoryCardWidth, navigation] // Add navigation to dependencies
+    [categoryCardWidth, categoryColumns, navigation, styles] // Add navigation to dependencies
   );
 
   const renderNotice = useCallback((item) => <NoticeCard key={item.id} item={item} />, []);
@@ -442,16 +572,24 @@ export default function HomeScreen() {
   const ListHeader = useMemo(
     () => (
       <Animated.View style={[styles.body, { opacity: fadeAnim }]}>
-        <ProfileCard student={{ ...student, image: userProfileImage }} attendance={attendanceStats} />
+        <ProfileCard student={{ ...dynamicStudent, image: userProfileImage }} attendance={attendanceStats} />
 
         <View style={styles.statsGrid}>
-          <View style={styles.statsRow}>{dashboardStats.slice(0, 2).map(renderDashboardCard)}</View>
-          <View style={styles.statsRow}>{dashboardStats.slice(2, 4).map(renderDashboardCard)}</View>
+          {dashboardRows.map((row, index) => (
+            <View key={`dashboard-row-${index}`} style={styles.statsRow}>
+              {row.map(renderDashboardCard)}
+              {row.length < dashboardColumns
+                ? Array.from({ length: dashboardColumns - row.length }).map((_, fillerIndex) => (
+                    <View key={`dashboard-filler-${fillerIndex}`} style={styles.statsFiller} />
+                  ))
+                : null}
+            </View>
+          ))}
         </View>
 
         <SectionHeader title="Categories" />
       </Animated.View>
-    ), [fadeAnim, renderDashboardCard, dashboardStats, isTablet]); // Removed the extra ')' and ';'
+    ), [attendanceStats, dashboardColumns, dashboardRows, fadeAnim, renderDashboardCard, styles, userProfileImage]);
 
   const ListFooter = useMemo(
     () => (
@@ -481,18 +619,22 @@ export default function HomeScreen() {
         onMenuPress={() => toggleMenu(true)}
         onNotificationPress={() => navigation.navigate("Notices")}
         onProfilePress={() => navigation.navigate("Profile")}
-        profileImage={userProfileImage}
+        parent={primaryGuardian}
       />
 
       <FlatList
         data={categoryItems}
         renderItem={renderCategory}
         keyExtractor={(item) => item.id}
-        numColumns={isTablet ? 6 : 4}
-        key={isTablet ? 'tablet' : 'mobile'}
+        numColumns={categoryColumns}
+        key={`categories-${categoryColumns}`}
         ListHeaderComponent={ListHeader}
         ListFooterComponent={ListFooter}
         showsVerticalScrollIndicator={false}
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={7}
+        removeClippedSubviews
         contentContainerStyle={[
           styles.scrollContent,
           {
@@ -535,7 +677,7 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ spacing, typography, card, shadow, isSmallDevice, contentWidth }) => StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: theme.colors.background,
@@ -543,54 +685,51 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: theme.spacing.page,
-    paddingBottom: 12,
+    paddingHorizontal: spacing.page,
+    paddingBottom: spacing.sm,
     backgroundColor: "rgba(245,247,251,0.96)",
-    maxWidth: 1200,
+    maxWidth: contentWidth,
     alignSelf: 'center',
     borderBottomWidth: 1,
     borderBottomColor: "rgba(229,231,235,0.72)",
-    shadowColor: "#0F172A",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 6,
+    ...shadow("md"),
     zIndex: 5,
+    width: "100%",
   },
   iconButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
   },
   headerTitleWrap: {
     flex: 1,
-    marginLeft: 6,
-    marginRight: 10,
+    marginLeft: spacing.xs,
+    marginRight: spacing.xs,
+    minWidth: 0,
   },
   greeting: {
     color: theme.colors.textSecondary,
-    fontSize: 11,
+    ...typography.caption,
     fontWeight: "700",
-    marginBottom: 2,
+    marginBottom: spacing.xxs,
   },
   headerName: {
     color: theme.colors.textPrimary,
-    fontSize: 18,
-    lineHeight: 22,
+    ...typography.titleSmall,
     fontWeight: "900",
   },
   notificationButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "#EEF2F7",
-    marginRight: 10,
+    marginRight: spacing.xs,
   },
   badge: {
     position: "absolute",
@@ -604,9 +743,9 @@ const styles = StyleSheet.create({
     borderColor: "#FFFFFF",
   },
   headerAvatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#DCEAFE",
@@ -617,28 +756,31 @@ const styles = StyleSheet.create({
   headerAvatarImage: {
     width: "100%",
     height: "100%",
-    borderRadius: 19,
+    borderRadius: 22,
     backgroundColor: "#DCEAFE",
   },
   headerAvatarText: {
     color: theme.colors.primary,
-    fontSize: 13,
+    ...typography.bodySmall,
     fontWeight: "900",
   },
   pressed: {
     opacity: 0.72,
   },
   scrollContent: {
-    paddingTop: 16,
+    paddingTop: spacing.md,
+    alignSelf: "center",
+    width: "100%",
+    maxWidth: contentWidth,
   },
   body: {
-    paddingHorizontal: theme.spacing.page,
+    paddingHorizontal: spacing.page,
   },
   footerBody: {
-    marginTop: 10,
+    marginTop: spacing.xs,
   },
   statsGrid: {
-    marginBottom: theme.spacing.section,
+    marginBottom: spacing.section,
   },
   statsGridTablet: {
     flexDirection: 'row',
@@ -646,31 +788,35 @@ const styles = StyleSheet.create({
   },
   statsRow: {
     flexDirection: "row",
-    gap: theme.spacing.gap,
-    marginBottom: theme.spacing.gap,
+    gap: spacing.gap,
+    marginBottom: spacing.gap,
+  },
+  statsFiller: {
+    flex: 1,
   },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 12,
+    marginBottom: spacing.sm,
   },
   sectionTitle: {
     color: theme.colors.textPrimary,
-    fontSize: 16,
+    ...typography.bodyLarge,
     fontWeight: "900",
+    flexShrink: 1,
   },
   sectionAction: {
     color: theme.colors.primary,
-    fontSize: 12,
+    ...typography.label,
     fontWeight: "900",
   },
   categoryItem: {
-    marginRight: 10,
-    marginBottom: 14,
+    marginRight: spacing.gap,
+    marginBottom: spacing.sm,
   },
   categoryItemFirst: {
-    marginLeft: theme.spacing.page,
+    marginLeft: spacing.page,
   },
   categoryItemLast: {
     marginRight: 0,
@@ -693,13 +839,9 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: "#FFFFFF",
     zIndex: 11,
-    borderTopRightRadius: 32,
-    borderBottomRightRadius: 32,
+    borderTopRightRadius: card.largeRadius,
+    borderBottomRightRadius: card.largeRadius,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 4, height: 0 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 16,
+    ...shadow("lg"),
   },
 });

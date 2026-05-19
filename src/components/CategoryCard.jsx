@@ -1,8 +1,11 @@
 import React, { memo, useRef } from "react";
 import { Animated, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { useAdaptiveLayout } from "../utils/layout";
 
 const CategoryCard = memo(function CategoryCard({ item, width, onPress }) {
   const scale = useRef(new Animated.Value(1)).current;
+  const layout = useAdaptiveLayout();
+  const styles = getStyles(layout);
 
   const animateTo = (value) => {
     Animated.spring(scale, {
@@ -22,7 +25,7 @@ const CategoryCard = memo(function CategoryCard({ item, width, onPress }) {
         android_ripple={{ color: "rgba(37,99,235,0.06)", borderless: false }}
         accessibilityRole="button"
         accessibilityLabel={item.title}
-        style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+        style={({ pressed }) => [styles.card, { aspectRatio: layout.card.categoryAspectRatio }, pressed && styles.cardPressed]}
       >
         <Image source={item.icon} style={styles.icon} resizeMode="contain" />
         <Text style={styles.title} numberOfLines={2}>
@@ -33,34 +36,30 @@ const CategoryCard = memo(function CategoryCard({ item, width, onPress }) {
   );
 });
 
-const styles = StyleSheet.create({
+const getStyles = ({ spacing, typography, card, shadow, isSmallDevice, responsiveWidth }) => StyleSheet.create({
   card: {
-    height: 116,
+    minHeight: isSmallDevice ? 98 : 112,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 22,
+    borderRadius: card.radius,
     backgroundColor: "#FFFFFF",
-    paddingHorizontal: 4,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.sm,
     borderWidth: 1,
     borderColor: "#EEF2F7",
-    shadowColor: "#0F172A",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.04,
-    shadowRadius: 12,
-    elevation: 3,
+    ...shadow("sm"),
   },
   cardPressed: {
     opacity: 0.9,
   },
   icon: {
-    width: 62,
-    height: 52,
-    marginBottom: 10,
+    width: Math.min(responsiveWidth(58), 70),
+    height: Math.min(responsiveWidth(48), 60),
+    marginBottom: spacing.xs,
   },
   title: {
     color: "#111827",
-    fontSize: 11,
-    lineHeight: 14,
+    ...typography.caption,
     fontWeight: "800",
     textAlign: "center",
   },

@@ -48,9 +48,9 @@ const MarksRow = memo(({ item, index, totalRows }) => (
       </Text>
     </View>
     <View style={[{ flex: 0.7, alignItems: 'center' }]}>
-      <View style={[styles.gradeBadge, { backgroundColor: item.grade.includes('A') ? '#DCFCE7' : '#DBEAFE' }]}>
-        <Text style={[styles.gradeText, { color: item.grade.includes('A') ? '#16A34A' : '#2563EB' }]}>
-          {item.grade}
+      <View style={[styles.gradeBadge, { backgroundColor: item?.grade?.includes('A') ? '#DCFCE7' : '#DBEAFE' }]}>
+        <Text style={[styles.gradeText, { color: item?.grade?.includes('A') ? '#16A34A' : '#2563EB' }]}>
+          {item?.grade || "N/A"}
         </Text>
       </View>
     </View>

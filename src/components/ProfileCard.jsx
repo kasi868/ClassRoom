@@ -1,15 +1,14 @@
-import React, { memo, useState, useEffect, useRef } from "react";
+import React, { memo, useEffect, useRef } from "react";
 import { Image, StyleSheet, Text, View, Animated } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import { LinearGradient } from "expo-linear-gradient";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useIsFocused } from "@react-navigation/native";
+import { useAdaptiveLayout } from "../utils/layout";
 
 const RADIUS = 22;
 const STROKE = 6;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-const InitialsAvatar = memo(function InitialsAvatar({ name, image }) {
+const InitialsAvatar = memo(function InitialsAvatar({ name, image, styles }) {
   const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -51,7 +50,7 @@ const InitialsAvatar = memo(function InitialsAvatar({ name, image }) {
   );
 });
 
-const AttendanceCircle = memo(function AttendanceCircle({ percentage }) {
+const AttendanceCircle = memo(function AttendanceCircle({ percentage, styles }) {
   const progress = Math.min(100, Math.max(0, percentage));
   const offset = CIRCUMFERENCE - (progress / 100) * CIRCUMFERENCE;
 
@@ -86,24 +85,11 @@ const AttendanceCircle = memo(function AttendanceCircle({ percentage }) {
 });
 
 const ProfileCard = memo(function ProfileCard({ student, attendance }) {
-  const [displayImage, setDisplayImage] = useState(student.image);
-  const isFocused = useIsFocused();
-
-  // Fetch latest image from AsyncStorage whenever the screen is focused
-  useEffect(() => {
-    const syncProfileImage = async () => {
-      try {
-        const storedImage = await AsyncStorage.getItem("@user_profile_image");
-        if (storedImage) {
-          setDisplayImage(storedImage);
-        }
-      } catch (error) {
-        console.error("ProfileCard: Failed to load stored image", error);
-      }
-    };
-
-    if (isFocused) syncProfileImage();
-  }, [isFocused]);
+  const layout = useAdaptiveLayout();
+  const styles = getStyles(layout);
+  // Trust the dynamic image passed from parent state (HomeScreen)
+  // This ensures the component is clean, flexible, and reacts instantly to prop changes
+  const displayImage = student.image;
 
   return (
     <LinearGradient
@@ -113,16 +99,16 @@ const ProfileCard = memo(function ProfileCard({ student, attendance }) {
       style={styles.outerCard}
     >
       <View style={styles.profileSection}>
-        <InitialsAvatar name={student.name} image={displayImage} />
+        <InitialsAvatar name={student.name} image={displayImage} styles={styles} />
         <View style={styles.profileTextWrap}>
           <Text style={styles.studentName} numberOfLines={1}>
-            {student.name}
+            {student.name || "Student Name"}
           </Text>
           <Text style={styles.studentMeta} numberOfLines={1}>
-            {student.className} • No. {student.rollNumber}
+            {student.className || student.grade} {student.section ? `• ${student.section}` : ''}
           </Text>
           <Text style={styles.studentMeta} numberOfLines={1}>
-            {student.academicYear}
+            ID: {student.id} {student.rollNumber ? `• Roll No: ${student.rollNumber}` : ''}
           </Text>
         </View>
       </View>
@@ -133,71 +119,69 @@ const ProfileCard = memo(function ProfileCard({ student, attendance }) {
           <Text style={styles.attendanceSubLabel}>{attendance.period}</Text>
         </View>
         <View style={styles.attendanceVisual}>
-          <AttendanceCircle percentage={attendance.percentage} />
+          <AttendanceCircle percentage={attendance.percentage} styles={styles} />
         </View>
       </View>
     </LinearGradient>
   );
 });
 
-const styles = StyleSheet.create({
+const getStyles = ({ width, spacing, typography, card, shadow, isSmallDevice, isTablet }) => StyleSheet.create({
   outerCard: {
-    flexDirection: "row",
+    flexDirection: width < 370 ? "column" : "row",
     alignItems: "center",
     justifyContent: "space-between",
-    borderRadius: 26,
+    borderRadius: card.largeRadius,
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.6)",
-    shadowColor: "#0F172A",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 18,
-    elevation: 6,
-    padding: 16,
-    marginBottom: 20,
-    gap: 10,
-    minHeight: 128,
+    ...shadow("lg"),
+    padding: card.padding,
+    marginBottom: spacing.lg,
+    gap: spacing.sm,
+    minHeight: isSmallDevice ? 118 : 128,
   },
   profileSection: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    paddingLeft: 4,
+    gap: spacing.sm,
+    paddingLeft: spacing.xxs,
+    minWidth: 0,
   },
   attendanceInnerCard: {
     flexDirection: "row",
     backgroundColor: "rgba(255, 255, 255, 0.85)",
-    borderRadius: 20,
-    padding: 10,
-    paddingRight: 6,
+    borderRadius: card.radius,
+    padding: spacing.xs,
+    paddingRight: spacing.xs,
     alignItems: "center",
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.5)",
-    maxWidth: "48%",
-    marginRight: 6, // Moves the card slightly left from the right edge
+    maxWidth: width < 370 ? "100%" : isTablet ? "42%" : "50%",
+    alignSelf: width < 370 ? "stretch" : "auto",
+    marginRight: 0, // Moves the card slightly left from the right edge
   },
   attendanceInfo: {
-    marginRight: 4,
+    marginRight: 0,
   },
   attendanceVisual: {
     transform: [{ scale: 0.85 }],
-    width: 84,
-    height: 64,
+    width: isSmallDevice ? 72 : 84,
+    height: isSmallDevice ? 58 : 64,
     alignItems: "center",
     justifyContent: "center",
   },
   avatarContainer: {
     position: 'relative',
-    width: 60,
-    height: 60,
+    width: isSmallDevice ? 54 : 60,
+    height: isSmallDevice ? 54 : 60,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarImage: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: isSmallDevice ? 52 : 58,
+    height: isSmallDevice ? 52 : 58,
+    borderRadius: isSmallDevice ? 26 : 29,
     backgroundColor: "#FFFFFF",
   },
   avatarBorder: {
@@ -208,44 +192,44 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   initialsAvatar: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: isSmallDevice ? 52 : 58,
+    height: isSmallDevice ? 52 : 58,
+    borderRadius: isSmallDevice ? 26 : 29,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#EFF6FF",
   },
   initialsText: {
     color: "#2563EB",
-    fontSize: 17,
+    ...typography.titleSmall,
     fontWeight: "900",
   },
   profileTextWrap: {
     flex: 1,
+    minWidth: 0,
   },
   studentName: {
     color: "#111827",
-    fontSize: 14,
+    ...typography.body,
     fontWeight: "800",
-    marginBottom: 4,
+    marginBottom: spacing.xxs,
   },
   studentMeta: {
     color: "#6B7280",
-    fontSize: 10.5,
-    lineHeight: 15,
+    ...typography.caption,
     fontWeight: "700",
   },
   attendanceLabel: {
     color: "#111827",
-    fontSize: 11,
+    ...typography.caption,
     fontWeight: "900",
   },
   attendanceSubLabel: {
     color: "#9CA3AF",
-    fontSize: 9,
+    fontSize: Math.max(9, typography.caption.fontSize - 2),
     fontWeight: "800",
     marginTop: 1,
-    marginBottom: 5,
+    marginBottom: spacing.xxs,
     textTransform: "uppercase",
   },
   progressWrap: {
@@ -257,7 +241,7 @@ const styles = StyleSheet.create({
   progressText: {
     position: "absolute",
     color: "#16A34A",
-    fontSize: 14,
+    ...typography.body,
     fontWeight: "900",
   },
 });

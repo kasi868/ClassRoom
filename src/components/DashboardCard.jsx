@@ -1,9 +1,12 @@
 import React, { memo, useRef } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useAdaptiveLayout } from "../utils/layout";
 
 const DashboardCard = memo(function DashboardCard({ item, onPress }) {
   const scale = useRef(new Animated.Value(1)).current;
+  const layout = useAdaptiveLayout();
+  const styles = getStyles(layout);
 
   const animateTo = (value) => {
     Animated.spring(scale, {
@@ -38,7 +41,12 @@ const DashboardCard = memo(function DashboardCard({ item, onPress }) {
         </Text>
 
         <View style={styles.valueRow}>
-          <Text style={[styles.value, { color: item.valueColor || "#111827" }]} numberOfLines={1}>
+          <Text
+            style={[styles.value, { color: item.valueColor || "#111827" }]}
+            numberOfLines={2}
+            adjustsFontSizeToFit
+            minimumFontScale={0.78}
+          >
             {item.value}
           </Text>
           {item.trend ? (
@@ -61,37 +69,34 @@ const DashboardCard = memo(function DashboardCard({ item, onPress }) {
   );
 });
 
-const styles = StyleSheet.create({
+const getStyles = ({ spacing, typography, card, shadow, isSmallDevice }) => StyleSheet.create({
   animatedWrap: {
     flex: 1,
+    minWidth: 0,
   },
   card: {
-    minHeight: 126,
-    borderRadius: 18,
-    padding: 14,
+    minHeight: card.dashboardMinHeight,
+    borderRadius: card.radius,
+    padding: card.compactPadding,
     overflow: "hidden",
-    shadowColor: "#0F172A",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.06,
-    shadowRadius: 18,
-    elevation: 4,
+    ...shadow("md"),
   },
   cardPressed: {
     opacity: 0.92,
   },
   iconBox: {
-    width: 36,
-    height: 36,
+    width: isSmallDevice ? 34 : 38,
+    height: isSmallDevice ? 34 : 38,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
+    marginBottom: spacing.sm,
   },
   title: {
     color: "#111827",
-    fontSize: 12,
+    ...typography.label,
     fontWeight: "800",
-    marginBottom: 7,
+    marginBottom: spacing.xs,
   },
   valueRow: {
     flexDirection: "row",
@@ -99,22 +104,22 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   value: {
-    fontSize: 24,
-    lineHeight: 28,
+    ...typography.headline,
     fontWeight: "900",
     letterSpacing: 0,
+    flexShrink: 1,
   },
   footer: {
-    marginTop: 8,
+    marginTop: spacing.xs,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 8,
+    gap: spacing.xs,
   },
   subtitle: {
     flex: 1,
     color: "#374151",
-    fontSize: 11,
+    ...typography.caption,
     fontWeight: "600",
   },
 });

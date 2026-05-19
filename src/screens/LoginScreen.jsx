@@ -33,18 +33,18 @@ export default function LoginScreen() {
   const [passwordError, setPasswordError] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { width, height, isSmallDevice, isTablet } = useResponsive();
+  const { width, height, isSmallDevice, isTablet, spacing, typography, card: cardMetrics } = useResponsive();
   const insets = useSafeAreaInsets();
 
   const selectedSchool = useMemo(() => {
     return route.params?.selectedSchool || null;
   }, [route.params?.selectedSchool]);
 
-  const imageSize = isSmallDevice ? height * 0.26 : Math.min(width * 0.85, height * 0.42);
-
   // Professional logo scaling: Dynamic width based on device type
-  const logoWidth = isSmallDevice ? width * 0.55 : (isTablet ? 220 : 200);
+  const logoWidth = Math.min(isSmallDevice ? width * 0.5 : width * 0.56, isTablet ? 220 : 200);
   const logoHeight = logoWidth * 0.74; // Maintains original aspect ratio
+  const sheetWidth = Math.min(width - spacing.page * 2, isTablet ? 520 : width);
+  const sheetMaxHeight = height * (isSmallDevice ? 0.74 : 0.66);
 
   // Animated value for the bottom sheet's translateY
   const bottomSheetTranslateY = useRef(new Animated.Value(0)).current;
@@ -80,7 +80,7 @@ export default function LoginScreen() {
       keyboardDidShowListener.remove();
       keyboardDidHideListener.remove();
     };
-  }, [bottomSheetTranslateY]);
+  }, [bottomSheetTranslateY, insets.bottom]);
 
   const validateEmail = (text) => {
     const reg = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w\w+)+$/;
@@ -163,7 +163,20 @@ export default function LoginScreen() {
         style={[
           styles.card,
           styles.bottomSheetAbsolute, // Position absolutely at the bottom
-          isTablet && { width: 500, alignSelf: 'center', left: (width - 500) / 2, borderBottomLeftRadius: 36, borderBottomRightRadius: 36, marginBottom: 20 },
+          {
+            width: sheetWidth,
+            alignSelf: "center",
+            left: (width - sheetWidth) / 2,
+            right: undefined,
+            maxHeight: sheetMaxHeight,
+            borderTopLeftRadius: cardMetrics.largeRadius,
+            borderTopRightRadius: cardMetrics.largeRadius,
+            borderBottomLeftRadius: isTablet ? cardMetrics.largeRadius : 0,
+            borderBottomRightRadius: isTablet ? cardMetrics.largeRadius : 0,
+            marginBottom: isTablet ? spacing.lg : 0,
+            paddingHorizontal: spacing.lg,
+            paddingTop: spacing.lg,
+          },
           { 
             paddingBottom: Math.max(insets.bottom, 20),
           },
@@ -199,9 +212,9 @@ export default function LoginScreen() {
               </View>
             )}
 
-            <Text style={[styles.title, !isSmallDevice && { fontSize: 22 }]}>Welcome Back</Text>
+            <Text style={[styles.title, typography.title]}>Welcome Back</Text>
 
-            <Text style={[styles.subtitle, isSmallDevice ? { marginBottom: 12 } : { marginBottom: 24 }]}>
+            <Text style={[styles.subtitle, typography.body, isSmallDevice ? { marginBottom: spacing.sm } : { marginBottom: spacing.xl }]}>
               Log in to access your account
             </Text>
 
@@ -237,6 +250,7 @@ export default function LoginScreen() {
                   }}
                   style={[
                     styles.input,
+                    typography.body,
                     { paddingRight: 48 },
                     passwordError ? styles.inputError : null,
                   ]}
@@ -277,7 +291,7 @@ export default function LoginScreen() {
               {isLoading ? (
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
-                <Text style={styles.loginText}>Login</Text>
+                <Text style={[styles.loginText, typography.bodyLarge]}>Login</Text>
               )}
             </TouchableOpacity>
 

@@ -1,15 +1,3 @@
-import { useWindowDimensions } from "react-native";
+import { useAdaptiveLayout } from "../utils/layout";
 
-export const useResponsive = () => {
-  const { width, height } = useWindowDimensions();
-
-  const isTablet = width > 768;
-  const isSmallDevice = height < 720;
-
-  return {
-    width,
-    height,
-    isTablet,
-    isSmallDevice,
-  };
-};
+export const useResponsive = () => useAdaptiveLayout();

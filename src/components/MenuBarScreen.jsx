@@ -128,7 +128,7 @@ const MenuBarScreen = ({ navigation, user = {
   useEffect(() => {
     const loadStoredImage = async () => {
       try {
-        const savedImage = await AsyncStorage.getItem("@user_profile_image");
+        const savedImage = await AsyncStorage.getItem("@student_profile_image");
         if (savedImage) {
           setProfileImage(savedImage);
         }

@@ -1,9 +1,12 @@
 import React, { memo, useRef } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useAdaptiveLayout } from "../utils/layout";
 
 const NoticeCard = memo(function NoticeCard({ item }) {
   const scale = useRef(new Animated.Value(1)).current;
+  const layout = useAdaptiveLayout();
+  const styles = getStyles(layout);
 
   const animateTo = (value) => {
     Animated.spring(scale, {
@@ -43,25 +46,21 @@ const NoticeCard = memo(function NoticeCard({ item }) {
   );
 });
 
-const styles = StyleSheet.create({
+const getStyles = ({ spacing, typography, card, shadow, isSmallDevice }) => StyleSheet.create({
   card: {
-    minHeight: 92,
+    minHeight: isSmallDevice ? 86 : 92,
     backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    marginBottom: 12,
-    paddingVertical: 14,
-    paddingLeft: 17,
-    paddingRight: 14,
+    borderRadius: card.radius,
+    marginBottom: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingLeft: spacing.md,
+    paddingRight: spacing.sm,
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 12,
+    gap: spacing.sm,
     borderWidth: 1,
     borderColor: "#EEF2F7",
-    shadowColor: "#0F172A",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.05,
-    shadowRadius: 14,
-    elevation: 3,
+    ...shadow("sm"),
     overflow: "hidden",
   },
   cardPressed: {
@@ -75,33 +74,32 @@ const styles = StyleSheet.create({
     width: 4,
   },
   iconWrap: {
-    width: 36,
-    height: 36,
+    width: isSmallDevice ? 34 : 38,
+    height: isSmallDevice ? 34 : 38,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
   content: {
     flex: 1,
+    minWidth: 0,
   },
   title: {
     color: "#111827",
-    fontSize: 13,
-    lineHeight: 17,
+    ...typography.bodySmall,
     fontWeight: "900",
-    marginBottom: 4,
+    marginBottom: spacing.xxs,
   },
   description: {
     color: "#4B5563",
-    fontSize: 12,
-    lineHeight: 17,
+    ...typography.label,
     fontWeight: "500",
   },
   time: {
     color: "#9CA3AF",
-    fontSize: 11,
+    ...typography.caption,
     fontWeight: "700",
-    marginTop: 8,
+    marginTop: spacing.xs,
   },
 });
 
